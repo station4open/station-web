@@ -10,13 +10,14 @@ import Data.List ((++), any, lookup)
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
 import Data.String (String, fromString)
-import Control.Monad (return, (=<<))
+import Control.Monad (return, (>>=), (=<<))
 import Text.Show (show)
 import Text.Read (readMaybe)
 import Data.Time (getZonedTime, formatTime, defaultTimeLocale)
+import System.Exit (exitSuccess, exitFailure)
 import System.FilePath (FilePath)
 import System.IO (IO, stdout, putChar, putStr, putStrLn, BufferMode (LineBuffering), hSetBuffering)
-import System.Environment (lookupEnv)
+import System.Environment (getArgs, lookupEnv)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS.C8
 import qualified Data.ByteString.UTF8 as BS.U8
@@ -133,7 +134,8 @@ command_password db request respond =
 				| BS.length password > 0 ->
 					do
 						encrypted <- Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass password)
-						n <- DB.execute
+						n <-
+							DB.execute
 								db
 								"UPDATE \"USER\" SET \"PASSWORD\"=? WHERE \"NAME\"=?"
 								(Crypto.Scrypt.getEncryptedPass encrypted, user)
@@ -143,7 +145,7 @@ command_password db request respond =
 			_ -> respond_404 request respond
 
 command_login :: Wai.Application
-command_login = respond_200
+command_login = respond_303 home_page
 
 command_logout :: Wai.Application
 command_logout request respond
@@ -187,13 +189,39 @@ main =
 		putStrLn ("\tport: " ++ show port)
 		putStrLn ("\tdatabase: " ++ show dburl)
 		putStrLn ("\tlog: " ++ show log)
-		db <- DB.connectPostgreSQL (BS.C8.pack dburl)
-		let application =
-			http_log log $
-			handle_home $
-			auth_check db $
-			handle_POST db $
-			Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path)
-		Warp.run port application
+		getArgs >>= \case
+			[] ->
+				do
+					db <- DB.connectPostgreSQL (BS.C8.pack dburl)
+					let application =
+						http_log log $
+						handle_home $
+						auth_check db $
+						handle_POST db $
+						Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path)
+					Warp.run port application
+			["adduser", username@(_:_), password@(_:_)] ->
+				do
+					db <- DB.connectPostgreSQL (BS.C8.pack dburl)
+					encrypted <- Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.C8.pack password))
+					n <-
+						DB.execute
+							db
+							"INSERT INTO \"USER\"(\"NAME\",\"PASSWORD\") VALUES(?,?)"
+							(username, Crypto.Scrypt.getEncryptedPass encrypted)
+					case n of
+						1 ->
+							do
+								putStrLn "OK"
+								exitSuccess
+						_ ->
+							do
+								putStrLn "Fail"
+								exitFailure
+			_ ->
+				do
+					putStrLn "Commands:"
+					putStrLn "\t(no argument): start server"
+					putStrLn "\tadduser {username} {password}: add a new user"
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}
