@@ -1,1 +1,1 @@
-web: .cabal-sandbox/bin/main
+web: .cabal-sandbox/bin/station
