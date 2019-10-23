@@ -17,14 +17,14 @@ import qualified Station.HTTP as HTTP
 
 handle_login :: Wai.Application
 handle_login request respond
-	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		HTTP.respond_303 Constant.private_home request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
 handle_logout :: Wai.Application
 handle_logout request respond
-	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		case HttpAuth.extractBasicAuth =<< lookup Network.HTTP.Types.hAuthorization (Wai.requestHeaders request) of
 			Just auth
 				| fst auth /= "" ->
