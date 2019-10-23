@@ -50,14 +50,14 @@ respond_200 :: Wai.Application
 respond_200 _ respond =
 	respond (Wai.responseLBS HTTP.status200 [("Content-Type", "text/plain; charset=ASCII")] "OK")
 
-respond_401 :: Wai.Application
-respond_401 _ respond =
+respond_401 :: String -> Wai.Application
+respond_401 realm _ respond =
 	respond
 		(Wai.responseLBS
 			HTTP.status401
 			[
 				("Content-Type", "text/plain; charset=ASCII"),
-				("WWW-Authenticate", fromString ("Basic realm=\"" ++ Constant.auth_realm ++ "\", charset=\"UTF-8\""))]
+				("WWW-Authenticate", fromString ("Basic realm=\"" ++ realm ++ "\", charset=\"UTF-8\""))]
 			"UNAUTHORIZED")
 
 respond_403 :: Wai.Application
