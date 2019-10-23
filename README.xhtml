@@ -1,9 +1,39 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <html xmlns='http://www.w3.org/1999/xhtml'>
-	<head><title>Read me</title></head>
-	<body>
+<head><title>Read me</title></head>
+<body>
+	<section>
+		<h2>Introduction</h2>
 		<p>
 			This is the website of Station.
 		</p>
-	</body>
+	</section>
+	<section>
+		<h2>Installation</h2>
+		<p>
+			Install database <a href="https://www.postgresql.org/">PostgreSQL</a>.
+		</p>
+		<p>
+			Install Haskell compiler <a href="https://www.haskell.org/ghc/">GHC</a> and package installer
+			<a href="https://www.haskell.org/cabal/index.html">cabal-install</a>.
+		</p>
+	</section>
+	<section>
+		<h2>Execution</h2>
+		<p>
+			Environment variables:
+			<ul>
+				<li>PORT: the socket port to listen on, default 8000</li>
+				<li>DATABASE_URL: connection string of PostgreSQL database, default ""</li>
+				<li>LOG:  display log messages either "True" or "False", default "False"</li>
+			</ul>
+		</p>
+		<p>
+			Command line:
+			<br/>
+			<code>cabal v2-run</code>
+			<br/>
+		</p>
+	</section>
+</body>
 </html>

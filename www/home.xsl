@@ -1,21 +1,29 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform' version='1.0'>
+<xsl:stylesheet
+	version='1.0'
+	xmlns:xsl='http://www.w3.org/1999/XSL/Transform'
+	xmlns='http://www.w3.org/1999/xhtml'
+>
+<xsl:import href='menubar.xsl'/>
 <xsl:output method='xml' version='1.0' encoding='UTF-8' indent='yes'/>
 <xsl:template match='/home'>
-	<html xmlns='http://www.w3.org/1999/xhtml'>
+	<html>
 		<head>
 			<title>Station</title>
 		</head>
 		<body>
+			<xsl:call-template name='menubar'/>
 			<p>
-				You have logged in.
+				Welcome <strong><xsl:value-of select='@name'/></strong>.
 			</p>
 			<p>
-				Your log-in password can be changed <a href='/account.xml'>here</a>.
+				The settings of your account can <a href='/account.xml'>be changed here</a>.
 			</p>
-			<form method='POST' action='/bin/logout'>
-				<button type='submit'>Log out</button>
-			</form>
+			<xsl:if test='@role="SysOp"'>
+				<p>
+					SysOp can also manage <a href='/sysop/account.xml'>accounts</a>.
+				</p>
+			</xsl:if>
 		</body>
 	</html>
 </xsl:template>

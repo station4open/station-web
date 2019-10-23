@@ -10,21 +10,24 @@ indent_size = tab
 tab_width = 7
 max_line_length = 128
 
-[*.hs]
-tab_width = 3
-
 [*.cabal]
 indent_style = space
 indent_size = 2
 
+[*.sql]
+tab_width = 5
+
+[*.hs]
+tab_width = 3
+
 [*.xhtml]
 tab_width = 2
 
-[*.js]
-tab_width = 3
+[*.xsl]
+tab_width = 2
 
 [*.css]
 tab_width = 11
 
-[*.sql]
-tab_width = 5
+[*.js]
+tab_width = 3

@@ -1,5 +1,5 @@
 module Station.HTTP (
-	log, respond_200, respond_401, respond_404,
+	log, respond_200, respond_401, respond_403, respond_404, respond_405, respond_409,
 	respond_redirect, respond_301, respond_303, respond_XML,
 	auth_user
 ) where
@@ -60,9 +60,21 @@ respond_401 _ respond =
 				("WWW-Authenticate", fromString ("Basic realm=\"" ++ Constant.auth_realm ++ "\", charset=\"UTF-8\""))]
 			"UNAUTHORIZED")
 
+respond_403 :: Wai.Application
+respond_403 _ respond =
+	respond (Wai.responseLBS HTTP.status403 [("Content-Type", "text/plain; charset=ASCII")] "FORBIDDEN")
+
 respond_404 :: Wai.Application
 respond_404 _ respond =
 	respond (Wai.responseLBS HTTP.status404 [("Content-Type", "text/plain; charset=ASCII")] "NOT FOUND")
+
+respond_405 :: Wai.Application
+respond_405 _ respond =
+	respond (Wai.responseLBS HTTP.status405 [("Content-Type", "text/plain; charset=ASCII")] "METHOD NOT ALLOWED")
+
+respond_409 :: String -> Wai.Application
+respond_409 message _ respond =
+	respond (Wai.responseLBS HTTP.status405 [("Content-Type", "text/plain; charset=ASCII")] (BS.L.U8.fromString message))
 
 respond_redirect :: HTTP.Status -> BS.L.ByteString -> BS.ByteString -> Wai.Application
 respond_redirect status text location _ respond =

@@ -1,10 +1,14 @@
-module Station.Constant.Role (Role (SysOp, User)) where
+module Station.Constant.Role (Type (SysOp, User)) where
 
 import Prelude (Enum (toEnum, fromEnum), undefined)
 
-data Role = SysOp | User
+import Text.Show
+import Text.Read
 
-instance Enum Role where
+data Type = SysOp | User
+	deriving (Show, Read)
+
+instance Enum Type where
 	toEnum 0 = SysOp
 	toEnum 1 = User
 	toEnum _ = undefined

@@ -54,11 +54,11 @@ auth_check db =
 		check :: HttpAuth.CheckCreds
 		check user password =
 			do
-				password's <- DB.query db "SELECT \"PASSWORD\" FROM \"USER\" WHERE \"NAME\"=?" (DB.Only user)
+				hashed <- DB.query db "SELECT \"PASSWORD\" FROM \"USER\" WHERE \"NAME\"=?" (DB.Only user)
 				let
 					pass :: Crypto.Scrypt.Pass
 					pass = Crypto.Scrypt.Pass password
-				return (any (Crypto.Scrypt.verifyPass' pass . Crypto.Scrypt.EncryptedPass . DB.fromOnly) password's)
+				return (any (Crypto.Scrypt.verifyPass' pass . Crypto.Scrypt.EncryptedPass . DB.fromOnly) hashed)
 		realm :: HttpAuth.AuthSettings
 		realm = Constant.auth_realm{HttpAuth.authIsProtected = protect}
 		in HttpAuth.basicAuth check realm

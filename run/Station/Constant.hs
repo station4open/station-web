@@ -6,7 +6,9 @@ module Station.Constant (
 import Prelude ()
 import Data.String (IsString (fromString))
 
-import Station.Constant.Role (Role)
+import qualified Station.Constant.Role
+
+type Role = Station.Constant.Role.Type
 
 auth_realm :: IsString s => s
 auth_realm = fromString "Station"
