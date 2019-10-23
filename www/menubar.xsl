@@ -6,10 +6,8 @@
 >
 <xsl:output method='xml' version='1.0' encoding='UTF-8' indent='yes'/>
 <xsl:template name='menubar'>
-	<form action='/bin/logout' method='POST'>
+	<div>
 		<a href='/home.xml'>Home</a>
-		|
-		<button type='submit'>Log out</button>
-	</form>
+	</div>
 </xsl:template>
 </xsl:stylesheet>
