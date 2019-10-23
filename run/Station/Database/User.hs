@@ -1,6 +1,6 @@
 module Station.Database.User (
 	Type (Record, name, password, role),
-	get, list, check, set, set_password
+	get, list, check, add, set, set_password
 ) where
 
 import Prelude (fromEnum, toEnum)
@@ -49,6 +49,21 @@ check user word db =
 			pass = Crypto.Scrypt.Pass word
 		return (any (Crypto.Scrypt.verifyPass' pass . Crypto.Scrypt.EncryptedPass . DB.fromOnly) hashed)
 
+hash_password :: String -> IO BS.ByteString
+hash_password word =
+	Crypto.Scrypt.getEncryptedPass <$> Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.U8.fromString word))
+
+add :: Type -> DB.Connection -> IO Bool
+add new_user db =
+	do
+		hash <- hash_password (password new_user)
+		n <-
+			DB.execute
+				db
+				"INSERT INTO \"USER\" (\"NAME\", \"PASSWORD\", \"ROLE\") VALUES (?, ?, ?)"
+				(name new_user, hash, fromEnum (role new_user))
+		return (n == 1)
+
 set :: String -> Type -> DB.Connection -> IO Bool
 set old_name new_user db =
 	case password new_user of
@@ -62,21 +77,21 @@ set old_name new_user db =
 				return (n == 1)
 		new_password ->
 			do
-				encrypted <- Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.U8.fromString new_password))
+				hash <- hash_password new_password
 				n <-
 					DB.execute
 						db
 						"UPDATE \"USER\" SET \"NAME\"=?, \"PASSWORD\"=?, \"ROLE\"=? WHERE \"NAME\"=?"
-						(name new_user, Crypto.Scrypt.getEncryptedPass encrypted, fromEnum (role new_user), old_name)
+						(name new_user, hash, fromEnum (role new_user), old_name)
 				return (n == 1)
 
 set_password :: String -> String -> DB.Connection -> IO Bool
 set_password user_name new_password db =
 	do
-		encrypted <- Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.U8.fromString new_password))
+		hash <- hash_password new_password
 		n <-
 			DB.execute
 				db
 				"UPDATE \"USER\" SET \"PASSWORD\"=? WHERE \"NAME\"=?"
-				(Crypto.Scrypt.getEncryptedPass encrypted, user_name)
+				(hash, user_name)
 		return (n == 1)

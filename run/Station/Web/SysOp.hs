@@ -3,7 +3,7 @@ module Station.Web.SysOp (handle) where
 import Prelude ()
 import Data.Bool (otherwise)
 import Data.Eq ((==))
-import Data.Maybe (Maybe (Just))
+import Data.Maybe (Maybe (Nothing, Just))
 import Data.Tuple (fst)
 import Data.List (map, lookup)
 import Data.String (String, IsString)
@@ -20,7 +20,6 @@ import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Parse as Wai.Parse
 
-import qualified Station.Constant as Constant
 import qualified Station.Constant.Role as Constant.Role
 import qualified Station.XML as XML
 import qualified Station.Database as DB
@@ -45,6 +44,24 @@ handle_account myself db request respond
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case map (flip lookup parameters) ["user", "name", "role", "password"] of
+				[Nothing, Just name, Just role', Just password] ->
+					case reads (BS.U8.toString role') of
+						(role, "") : _ ->
+							do
+								let new =
+									DB.User.Record{
+										DB.User.name = BS.U8.toString name,
+										DB.User.role = role,
+										DB.User.password = BS.U8.toString password}
+								ok <- DB.User.add new db
+								if ok
+									then HTTP.respond_303 (path_prefix <> "account.xml") request respond
+									else HTTP.respond_404 request respond
+						_ ->
+							do
+								BS.C8.putStr "Incorrect role: "
+								BS.C8.putStrLn role'
+								HTTP.respond_404 request respond
 				[Just user, Just name, Just role', Just password] ->
 					case reads (BS.U8.toString role') of
 						(role, "") : _ ->

@@ -25,8 +25,6 @@ import qualified Network.HTTP.Types as HTTP
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Middleware.HttpAuth as HttpAuth
 
-import qualified Station.Constant as Constant
-
 log :: Bool -> Wai.Middleware
 log False next request respond = next request respond
 log True  next request respond =
