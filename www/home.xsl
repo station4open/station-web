@@ -21,7 +21,8 @@
 			</p>
 			<xsl:if test='@role="SysOp"'>
 				<p>
-					System operator can <a href='/sysop/account.xml'>manage</a> the site.
+					System operator can manage <a href='/sysop/account.xml'>accounts</a> and <a href='/sysop/subject.xml'>subjects</a> of
+					this site.
 				</p>
 			</xsl:if>
 		</body>
