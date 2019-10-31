@@ -6,11 +6,10 @@ import Data.Eq ((==))
 import Data.Maybe (Maybe (Nothing, Just))
 import Data.Tuple (fst)
 import Data.List (map, lookup)
-import Data.String (String, IsString)
+import Data.String (IsString)
 import Data.Function (flip)
 import Data.Functor ((<$>))
 import Data.Monoid ((<>))
-import Control.Monad ((>>=))
 import Text.Show (show)
 import Text.Read (reads)
 import qualified Data.ByteString.Char8 as BS.C8
@@ -20,7 +19,6 @@ import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Parse as Wai.Parse
 
-import qualified Station.Constant.Role as Constant.Role
 import qualified Station.XML as XML
 import qualified Station.Database as DB
 import qualified Station.Database.User as DB.User
@@ -29,15 +27,14 @@ import qualified Station.HTTP as HTTP
 path_prefix :: IsString s => s
 path_prefix = "/sysop/"
 
-handle_account :: String -> DB.Type -> Wai.Application
-handle_account myself db request respond
+handle_account :: DB.Type -> Wai.Application
+handle_account db request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		do
 			users <- DB.User.list db
 			let
 				xml_user user = XML.element "user" [("role", show (DB.User.role user))] [XML.text (DB.User.name user)]
-				xml_users = XML.element "users" [] (map xml_user users)
-				xml_account = XML.element "account" [("name", myself)] [xml_users]
+				xml_account = XML.element "account" [] (map xml_user users)
 				body = XML.xslt (path_prefix <> "account.xsl") xml_account
 			HTTP.respond_XML body request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
@@ -86,13 +83,6 @@ handle_account myself db request respond
 
 handle :: [Data.Text.Text] -> DB.Type -> Wai.Middleware
 handle path db next request respond =
-	case HTTP.auth_user request of
-		Just user_name' ->
-			let user_name = BS.U8.toString user_name' in
-				DB.User.get user_name db >>= \case
-					[DB.User.Record{DB.User.role = Constant.Role.SysOp}] ->
-						case path of
-							["account.xml"] -> handle_account user_name db request respond
-							_ -> next request respond
-					_ -> HTTP.respond_403 request respond
-		_ -> HTTP.respond_403 request respond
+	case path of
+		["account.xml"] -> handle_account db request respond
+		_ -> next request respond
