@@ -9,5 +9,6 @@
 	<div>
 		<a href='/home.xml'>Home</a>
 	</div>
+	<hr/>
 </xsl:template>
 </xsl:stylesheet>

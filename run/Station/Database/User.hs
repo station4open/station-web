@@ -57,26 +57,26 @@ delete :: String -> DB.Connection -> IO Bool
 delete user db = (1 ==) <$> DB.execute db "DELETE FROM \"USER\" WHERE \"NAME\"=?" (DB.Only user)
 
 add :: Type -> DB.Connection -> IO Bool
-add new_user db =
+add user db =
 	do
-		hash <- hash_password (password new_user)
+		hash <- hash_password (password user)
 		n <-
 			DB.execute
 				db
 				"INSERT INTO \"USER\" (\"NAME\", \"PASSWORD\", \"ROLE\") VALUES (?, ?, ?)"
-				(name new_user, hash, fromEnum (role new_user))
+				(name user, hash, fromEnum (role user))
 		return (n == 1)
 
 set :: String -> Type -> DB.Connection -> IO Bool
-set old_name new_user db =
-	case password new_user of
+set old new db =
+	case password new of
 		"" ->
 			do
 				n <-
 					DB.execute
 						db
 						"UPDATE \"USER\" SET \"NAME\"=?, \"ROLE\"=? WHERE \"NAME\"=?"
-						(name new_user, fromEnum (role new_user), old_name)
+						(name new, fromEnum (role new), old)
 				return (n == 1)
 		new_password ->
 			do
@@ -85,7 +85,7 @@ set old_name new_user db =
 					DB.execute
 						db
 						"UPDATE \"USER\" SET \"NAME\"=?, \"PASSWORD\"=?, \"ROLE\"=? WHERE \"NAME\"=?"
-						(name new_user, hash, fromEnum (role new_user), old_name)
+						(name new, hash, fromEnum (role new), old)
 				return (n == 1)
 
 set_password :: String -> String -> DB.Connection -> IO Bool
