@@ -74,7 +74,7 @@ handle_account db request respond
 								HTTP.respond_404 request respond
 				[Just user, _, _, _, Just _] ->
 					redirect_result =<< DB.User.delete (BS.U8.toString user) db
-				_ -> HTTP.respond_409 "Unknown form field" request respond
+				_ -> HTTP.respond_422 "Unknown form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 	where
