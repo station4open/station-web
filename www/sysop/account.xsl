@@ -70,6 +70,10 @@
 						New Password
 						<input type='text' name='password'/>
 					</label>
+					<label>
+						Delete
+						<input type='checkbox' name='delete'/>
+					</label>
 					<button type='submit'>Save</button>
 				</form>
 			</xsl:for-each>

@@ -1,6 +1,6 @@
 module Station.Database.User (
 	Type (Record, name, password, role),
-	get, list, check, add, set, set_password
+	get, list, check, delete, add, set, set_password
 ) where
 
 import Prelude (fromEnum, toEnum)
@@ -52,6 +52,9 @@ check user word db =
 hash_password :: String -> IO BS.ByteString
 hash_password word =
 	Crypto.Scrypt.getEncryptedPass <$> Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.U8.fromString word))
+
+delete :: String -> DB.Connection -> IO Bool
+delete user db = (1 ==) <$> DB.execute db "DELETE FROM \"USER\" WHERE \"NAME\"=?" (DB.Only user)
 
 add :: Type -> DB.Connection -> IO Bool
 add new_user db =
