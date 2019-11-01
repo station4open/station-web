@@ -13,52 +13,56 @@
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
-			<h2>Create new subject</h2>
-			<p>
-				<form action='POST'>
-					<label>
-						Title
-						<br/>
-						<input type='text' name='title'/>
-					</label>
-					<br/>
-					<label>
-						Description
-						<br/>
-						<textarea name='description'/>
-					</label>
-					<br/>
-					<button type='submit'>Create</button>
-				</form>
-			</p>
-			<h2>Modify existing subjects</h2>
-			<xsl:for-each select='item'>
+			<section>
+				<h1>Create new subject</h1>
 				<p>
-					<form method='POST'>
-						<input type='text' name='subject' readonly=''>
-							<xsl:attribute name='value'><xsl:value-of select='@title'/></xsl:attribute>
-						</input>
-						<br/>
+					<form action='POST'>
 						<label>
 							Title
 							<br/>
-							<input type='text' name='title'>
-								<xsl:attribute name='value'><xsl:value-of select='@title'/></xsl:attribute>
-							</input>
+							<input type='text' name='title'/>
 						</label>
 						<br/>
 						<label>
 							Description
 							<br/>
-							<textarea name='description'><xsl:value-of select='.'/></textarea>
+							<textarea name='description'/>
 						</label>
 						<br/>
-						<label>Delete<input type='checkbox' name='delete'/></label>
-						<br/>
-						<button type='submit'>Modify</button>
+						<button type='submit'>Create</button>
 					</form>
 				</p>
-			</xsl:for-each>
+			</section>
+			<section>
+				<h1>Modify existing subjects</h1>
+				<xsl:for-each select='item'>
+					<p>
+						<form method='POST'>
+							<input type='text' name='subject' readonly=''>
+								<xsl:attribute name='value'><xsl:value-of select='@title'/></xsl:attribute>
+							</input>
+							<br/>
+							<label>
+								Title
+								<br/>
+								<input type='text' name='title'>
+									<xsl:attribute name='value'><xsl:value-of select='@title'/></xsl:attribute>
+								</input>
+							</label>
+							<br/>
+							<label>
+								Description
+								<br/>
+								<textarea name='description'><xsl:value-of select='.'/></textarea>
+							</label>
+							<br/>
+							<label>Delete<input type='checkbox' name='delete'/></label>
+							<br/>
+							<button type='submit'>Modify</button>
+						</form>
+					</p>
+				</xsl:for-each>
+			</section>
 		</body>
 	</html>
 </xsl:template>
