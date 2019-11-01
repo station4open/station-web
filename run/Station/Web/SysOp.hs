@@ -110,7 +110,7 @@ handle_subject db request respond
 							DB.Subject.title = BS.U8.toString title,
 							DB.Subject.description = BS.U8.toString description}
 						in redirect_result =<< DB.Subject.set (BS.U8.toString subject) new db
-				[Just subject, _, _, _, Just _] ->
+				[Just subject, _, _, Just _] ->
 					redirect_result =<< DB.Subject.delete (BS.U8.toString subject) db
 				_ -> HTTP.respond_422 "Unknown form field" request respond
 	| otherwise =

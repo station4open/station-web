@@ -16,7 +16,7 @@
 			<section>
 				<h1>Create new subject</h1>
 				<p>
-					<form action='POST'>
+					<form method='POST'>
 						<label>
 							Title
 							<br/>
