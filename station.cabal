@@ -22,6 +22,7 @@ executable station
     Station.Database
     Station.Database.User
     Station.Database.Subject
+    Station.Database.Course
     Station.HTTP
     Station.Web
     Station.Web.Bin
