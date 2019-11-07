@@ -3,17 +3,17 @@
 <head><title>Read me</title></head>
 <body>
 	<section>
-		<h2>
+		<h1>
 			Introduction
-		</h2>
+		</h1>
 		<p>
 			This is the website of Station.
 		</p>
 	</section>
 	<section>
-		<h2>
+		<h1>
 			Installation
-		</h2>
+		</h1>
 		<p>
 			Install database <a href="https://www.postgresql.org/">PostgreSQL</a>.
 		</p>
@@ -23,12 +23,9 @@
 		</p>
 	</section>
 	<section>
-		<h2>
-			Execution
-		</h2>
-		<h3>
+		<h1>
 			Environment variables
-		</h3>
+		</h1>
 		<p>
 			<table>
 				<thead>
@@ -59,10 +56,24 @@
 				</tbody>
 			</table>
 		</p>
-		<h3>
-			Command line
-		</h3>
+	</section>
+	<section>
+		<h1>
+			Initialize database
+		</h1>
 		<p>
+			Command line:
+			<br/>
+			<code>psql $DATABASE_URL &lt; sql/setup.sql</code>
+		</p>
+	</section>
+	<section>
+		<h1>
+			Execution
+		</h1>
+		<p>
+			Command line:
+			<br/>
 			<code>cabal v2-run</code>
 		</p>
 	</section>
