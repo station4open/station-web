@@ -58,11 +58,11 @@ add course db =
 				"INSERT INTO \"COURSE\" (\"SUBJECT\",\"TITLE\", \"DESCRIPTION\") VALUES (?,?,?)"
 				(subject course, title course, description course)
 
-set :: String -> Type -> DB.Connection -> IO Bool
-set old new db =
+set :: String -> String -> Type -> DB.Connection -> IO Bool
+set old_subject old_title new db =
 	(1 ==)
 		<$>
 			DB.execute
 				db
-				"UPDATE \"COURSE\" SET \"TITLE\"=?, \"DESCRIPTION\"=? WHERE \"TITLE\"=?"
-				(subject new, title new, description new, old)
+				"UPDATE \"COURSE\" SET \"SUBJECT\"=?, \"TITLE\"=?, \"DESCRIPTION\"=? WHERE (\"SUBJECT\", \"TITLE\")=(?,?)"
+				(subject new, title new, description new, old_subject, old_title)

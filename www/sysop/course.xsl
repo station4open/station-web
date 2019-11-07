@@ -10,6 +10,7 @@
 	<html>
 		<head>
 			<title>SysOp: Course</title>
+			<link rel="stylesheet" type="text/css" href="base.css"/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
@@ -18,11 +19,39 @@
 					<input type='hidden' name='subject'>
 						<xsl:attribute name='value'><xsl:value-of select='subject'/></xsl:attribute>
 					</input>
-					<button type='submit'>Back</button>
+					<input type='submit' value='Back'/>
 				</form>
 				<section>
-					<h1><xsl:value-of select='subject'/>: <xsl:value-of select='title'/></h1>
-					<pre><xsl:value-of select='description'/></pre>
+					<h1>Course</h1>
+					<form method='POST'>
+						<div class='flex'>
+							<input type='text' name='subject' readonly=''>
+								<xsl:attribute name='value'><xsl:value-of select='subject'/></xsl:attribute>
+							</input>
+						</div>
+						<div class='flex'>
+							<input type='text' name='course' readonly=''>
+								<xsl:attribute name='value'><xsl:value-of select='title'/></xsl:attribute>
+							</input>
+						</div>
+						<label>
+							Title
+							<div class='flex'>
+								<input type='text' name='title'>
+									<xsl:attribute name='value'><xsl:value-of select='title'/></xsl:attribute>
+								</input>
+							</div>
+						</label>
+						<label>
+							Description
+							<div class='flex'>
+								<textarea name='description'><xsl:value-of select='description'/></textarea>
+							</div>
+						</label>
+						<label>Delete<input type='checkbox' name='delete'/></label>
+						<br/>
+						<input type='submit' value='Save'/>
+					</form>
 				</section>
 			</xsl:for-each>
 		</body>

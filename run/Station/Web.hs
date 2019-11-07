@@ -45,7 +45,7 @@ handle_account db request respond
 							ok <- DB.User.set_password (BS.U8.toString username) (BS.U8.toString password) db
 							if ok
 								then HTTP.respond_303 Constant.private_home request respond
-								else HTTP.respond_422 "Failed to update password" request respond
+								else HTTP.respond_400 "Failed to update password" request respond
 				_ -> HTTP.respond_404 request respond
 	| otherwise =
 		HTTP.respond_405 request respond

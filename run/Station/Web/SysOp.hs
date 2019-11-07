@@ -7,13 +7,12 @@ import Data.Maybe (Maybe (Nothing, Just))
 import Data.Tuple (fst)
 import Data.Monoid ((<>))
 import Data.List (map, lookup)
-import Data.String (IsString)
+import Data.String (String, IsString)
 import Data.Function (flip)
 import Data.Functor ((<$>))
-import Control.Monad ((=<<))
+import Control.Monad ((>>=), (=<<))
 import Text.Show (show)
 import Text.Read (reads)
-import System.IO (print)
 import qualified Data.ByteString.Char8 as BS.C8
 import qualified Data.ByteString.UTF8 as BS.U8
 import qualified Data.Text (Text)
@@ -75,7 +74,7 @@ handle_account db request respond
 								HTTP.respond_404 request respond
 				[Just user, _, _, _, Just _] ->
 					redirect_result =<< DB.User.delete (BS.U8.toString user) db
-				_ -> HTTP.respond_422 "Incorrect form field" request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 	where
@@ -142,16 +141,28 @@ handle_subject db request respond
 													XML.element "courses" [] (map xml_course courses)]
 									HTTP.respond_XML (XML.xslt (path_prefix <> "subject.xsl") xml) request respond
 							_ -> HTTP.respond_404 request respond
-				x ->
-					do
-						print x
-						HTTP.respond_422 "DEBUG: Incorrect form field" request respond
-				--	_ -> HTTP.respond_422 "Incorrect form field" request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 	where
 		redirect_result True = HTTP.respond_303 (path_prefix <> "subject.xml") request respond
 		redirect_result False = HTTP.respond_404 request respond
+
+course_page :: String -> String -> DB.Type -> Wai.Application
+course_page subject title db request respond =
+	DB.Course.get subject title db >>= \case
+		[course] ->
+			let
+				xml =
+					XML.element
+						"course"
+						[]
+						[
+							XML.element "subject" [] [XML.text (DB.Course.subject course)],
+							XML.element "title" [] [XML.text (DB.Course.title course)],
+							XML.element "description" [] [XML.text (DB.Course.description course)]]
+				in HTTP.respond_XML (XML.xslt (path_prefix <> "course.xsl") xml) request respond
+		_ -> HTTP.respond_404 request respond
 
 handle_course :: DB.Type -> Wai.Application
 handle_course db request respond
@@ -161,27 +172,22 @@ handle_course db request respond
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case map (flip lookup parameters) ["subject", "course", "title", "description", "delete"] of
-				[Just subject_title', Just course_title', Nothing, Nothing, Nothing] ->
-					do
-						courses <-
-							let
-								subject_title = BS.U8.toString subject_title'
-								course_title = BS.U8.toString course_title'
-								in DB.Course.get subject_title course_title db
-						case courses of
-							[course] ->
-								let
-									xml =
-										XML.element
-											"course"
-											[]
-											[
-												XML.element "subject" [] [XML.text (DB.Course.subject course)],
-												XML.element "title" [] [XML.text (DB.Course.title course)],
-												XML.element "description" [] [XML.text (DB.Course.description course)]]
-									in HTTP.respond_XML (XML.xslt (path_prefix <> "course.xsl") xml) request respond
-							_ -> HTTP.respond_404 request respond
-				_ -> HTTP.respond_422 "Incorrect form field" request respond
+				[Just subject', Just title', Nothing, Nothing, Nothing] ->
+					course_page (BS.U8.toString subject') (BS.U8.toString title') db request respond
+				[Just subject', Just course', Just title, Just description, Nothing] ->
+					let
+						subject = BS.U8.toString subject'
+						course = BS.U8.toString course'
+						new =
+							DB.Course.Record{
+								DB.Course.subject = subject,
+								DB.Course.title = BS.U8.toString title,
+								DB.Course.description = BS.U8.toString description}
+						in
+							DB.Course.set subject course new db >>= \case
+								True -> course_page subject course db request respond
+								False -> HTTP.respond_404 request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
