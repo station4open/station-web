@@ -1,11 +1,15 @@
 module Station.Database.Course (
-	Type (Record, subject, title, description),
+	Identifier,
+	BodyType (Body, subject, title, description),
+	Type (Record, identifier, body),
 	get, list, delete, add, set
 ) where
 
 import Prelude ()
 import Data.Bool (Bool)
 import Data.Eq ((==))
+import Data.Maybe (Maybe (Nothing, Just))
+import Data.Int (Int32)
 import Data.String (String)
 import Control.Applicative ((<$>), (<*>))
 import System.IO (IO)
@@ -14,55 +18,72 @@ import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
 
-data Type =
-	Record{
-		subject :: String,
+import qualified Station.Database.Subject as DB.Subject
+
+type Identifier = Int32
+
+data BodyType =
+	Body{
+		subject :: DB.Subject.Identifier,
 		title :: String,
 		description :: String}
 
-instance DB.ToRow Type where
+instance DB.ToRow BodyType where
 	toRow course = [DB.toField (subject course), DB.toField (title course), DB.toField (description course)]
 
+instance DB.FromRow BodyType where
+	fromRow = Body <$> DB.field <*> DB.field <*> DB.field
+
+data Type =
+	Record{
+		identifier :: Identifier,
+		body :: BodyType}
+
+instance DB.ToRow Type where
+	toRow course = DB.toField (identifier course) : DB.toRow (body course)
+
 instance DB.FromRow Type where
-	fromRow = Record <$> DB.field <*> DB.field <*> DB.field
+	fromRow = Record <$> DB.field <*> DB.fromRow
 
-get :: String -> String -> DB.Connection -> IO [Type]
-get subject' title' db =
+get :: Identifier -> DB.Connection -> IO [BodyType]
+get course_identifier db =
 	DB.query
 		db
-		"SELECT \"SUBJECT\",\"TITLE\",\"DESCRIPTION\" FROM \"COURSE\" WHERE (\"SUBJECT\",\"TITLE\")=(?,?)"
-		(subject', title')
+		"SELECT \"SUBJECT\",\"TITLE\",\"DESCRIPTION\" FROM \"COURSE\" WHERE \"IDENTIFIER\"=?"
+		(DB.Only course_identifier)
 
-list :: String -> DB.Connection -> IO [Type]
-list subject' db =
+list :: DB.Subject.Identifier -> DB.Connection -> IO [Type]
+list subject_identifier db =
 	DB.query
 		db
-		"SELECT \"SUBJECT\",\"TITLE\",\"DESCRIPTION\" FROM \"COURSE\" WHERE \"SUBJECT\"=?"
-		(DB.Only subject')
+		"SELECT \"IDENTIFIER\",\"SUBJECT\",\"TITLE\",\"DESCRIPTION\" FROM \"COURSE\" WHERE \"SUBJECT\"=?"
+		(DB.Only subject_identifier)
 
-delete :: String -> String -> DB.Connection -> IO Bool
-delete subject' title' db =
+delete :: Identifier -> DB.Connection -> IO Bool
+delete course_identifier db =
 	(1 ==)
 		<$>
 			DB.execute
 				db
-				"DELETE FROM \"COURSE\" WHERE (\"SUBJECT\",\"TITLE\")=(?,?)"
-				(subject', title')
+				"DELETE FROM \"COURSE\" WHERE \"IDENTIFIER\"=?"
+				(DB.Only course_identifier)
 
-add :: Type -> DB.Connection -> IO Bool
+add :: BodyType -> DB.Connection -> IO (Maybe Identifier)
 add course db =
-	(1 ==)
+	(\case
+		[DB.Only result] -> (Just result)
+		_ -> Nothing)
 		<$>
-			DB.execute
+			DB.query
 				db
-				"INSERT INTO \"COURSE\" (\"SUBJECT\",\"TITLE\", \"DESCRIPTION\") VALUES (?,?,?)"
+				"INSERT INTO \"COURSE\"(\"SUBJECT\",\"TITLE\",\"DESCRIPTION\") VALUES (?,?,?) RETURNING \"IDENTIFIER\""
 				(subject course, title course, description course)
 
-set :: String -> String -> Type -> DB.Connection -> IO Bool
-set old_subject old_title new db =
+set :: Type -> DB.Connection -> IO Bool
+set course db =
 	(1 ==)
 		<$>
 			DB.execute
 				db
-				"UPDATE \"COURSE\" SET \"SUBJECT\"=?, \"TITLE\"=?, \"DESCRIPTION\"=? WHERE (\"SUBJECT\", \"TITLE\")=(?,?)"
-				(subject new, title new, description new, old_subject, old_title)
+				"UPDATE \"COURSE\" SET \"SUBJECT\"=?,\"TITLE\"=?,\"DESCRIPTION\"=? WHERE \"IDENTIFIER\"=?"
+				(subject (body course), title (body course), description (body course), identifier course)

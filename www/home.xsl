@@ -17,11 +17,11 @@
 				Welcome <strong><xsl:value-of select='@name'/></strong>.
 			</p>
 			<p>
-				The settings of your account can <a href='/account.xml'>be changed here</a>.
+				The settings of your account can <a href='/account'>be changed here</a>.
 			</p>
 			<xsl:if test='@role="SysOp"'>
 				<p>
-					System operator can manage <a href='/sysop/account.xml'>accounts</a> and <a href='/sysop/subject.xml'>subjects</a> of
+					System operator can manage <a href='/sysop/account'>accounts</a> and <a href='/sysop/subjects'>lessons</a> of
 					this site.
 				</p>
 			</xsl:if>

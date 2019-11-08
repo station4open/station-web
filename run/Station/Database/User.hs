@@ -63,7 +63,7 @@ add user db =
 		n <-
 			DB.execute
 				db
-				"INSERT INTO \"USER\" (\"NAME\", \"PASSWORD\", \"ROLE\") VALUES (?, ?, ?)"
+				"INSERT INTO \"USER\" (\"NAME\",\"PASSWORD\",\"ROLE\") VALUES (?,?,?)"
 				(name user, hash, fromEnum (role user))
 		return (n == 1)
 
@@ -75,7 +75,7 @@ set old new db =
 				n <-
 					DB.execute
 						db
-						"UPDATE \"USER\" SET \"NAME\"=?, \"ROLE\"=? WHERE \"NAME\"=?"
+						"UPDATE \"USER\" SET \"NAME\"=?,\"ROLE\"=? WHERE \"NAME\"=?"
 						(name new, fromEnum (role new), old)
 				return (n == 1)
 		new_password ->
@@ -84,7 +84,7 @@ set old new db =
 				n <-
 					DB.execute
 						db
-						"UPDATE \"USER\" SET \"NAME\"=?, \"PASSWORD\"=?, \"ROLE\"=? WHERE \"NAME\"=?"
+						"UPDATE \"USER\" SET \"NAME\"=?,\"PASSWORD\"=?,\"ROLE\"=? WHERE \"NAME\"=?"
 						(name new, hash, fromEnum (role new), old)
 				return (n == 1)
 

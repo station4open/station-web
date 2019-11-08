@@ -7,7 +7,7 @@ import Data.Maybe (Maybe (Nothing, Just))
 import Data.Tuple (fst)
 import Data.Monoid ((<>))
 import Data.List (map, lookup)
-import Data.String (String, IsString)
+import Data.String (IsString)
 import Data.Function (flip)
 import Data.Functor ((<$>))
 import Control.Monad ((>>=), (=<<))
@@ -15,7 +15,7 @@ import Text.Show (show)
 import Text.Read (reads)
 import qualified Data.ByteString.Char8 as BS.C8
 import qualified Data.ByteString.UTF8 as BS.U8
-import qualified Data.Text (Text)
+import qualified Data.Text (Text, unpack)
 import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Parse as Wai.Parse
@@ -81,8 +81,8 @@ handle_account db request respond
 		redirect_result True = HTTP.respond_303 (path_prefix <> "account.xml") request respond
 		redirect_result False = HTTP.respond_404 request respond
 
-handle_subject :: DB.Type -> Wai.Application
-handle_subject db request respond
+handle_subjects :: DB.Type -> Wai.Application
+handle_subjects db request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		do
 			subjects <- DB.Subject.list db
@@ -92,101 +92,163 @@ handle_subject db request respond
 						"item"
 						[]
 						[
-							XML.element "title" [] [XML.text (DB.Subject.title subject)],
-							XML.element "description" [] [XML.text (DB.Subject.description subject)]]
-				xml_subject = XML.element "subjects" [] (map xml_item subjects)
-				body = XML.xslt (path_prefix <> "subject.xsl") xml_subject
-			HTTP.respond_XML body request respond
+							XML.element "identifier" [] [XML.text (show (DB.Subject.identifier subject))],
+							XML.element "title" [] [XML.text (DB.Subject.title (DB.Subject.body subject))],
+							XML.element "description" [] [XML.text (DB.Subject.description (DB.Subject.body subject))]]
+			HTTP.respond_XML
+				(XML.xslt
+					(path_prefix <> "subjects.xsl")
+					(XML.element "subjects" [] (map xml_item subjects)))
+				request
+				respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-			case map (flip lookup parameters) ["subject", "title", "description", "delete"] of
-				[Nothing, Just title, Just description, Nothing] ->
-					let new =
-						DB.Subject.Record{
-							DB.Subject.title = BS.U8.toString title,
-							DB.Subject.description = BS.U8.toString description}
-						in redirect_result =<< DB.Subject.add new db
-				[Just subject, Just title, Just description, Nothing] ->
-					let new =
-						DB.Subject.Record{
-							DB.Subject.title = BS.U8.toString title,
-							DB.Subject.description = BS.U8.toString description}
-						in redirect_result =<< DB.Subject.set (BS.U8.toString subject) new db
-				[Just subject, _, _, Just _] ->
-					redirect_result =<< DB.Subject.delete (BS.U8.toString subject) db
-				[Just subject_title', Nothing, Nothing, Nothing] ->
-					do
-						let subject_title = BS.U8.toString subject_title'
-						subjects <- DB.Subject.get subject_title db
-						case subjects of
-							[subject] ->
-								do
-									courses <- DB.Course.list subject_title db
-									let
-										xml_course course =
-											XML.element
-												"course"
-												[]
-												[
-													XML.element "title" [] [XML.text (DB.Course.title course)],
-													XML.element "description" [] [XML.text (DB.Course.description course)]]
-										xml =
-											XML.element
-												"subject"
-												[]
-												[
-													XML.element "title" [] [XML.text (DB.Subject.title subject)],
-													XML.element "description" [] [XML.text (DB.Subject.description subject)],
-													XML.element "courses" [] (map xml_course courses)]
-									HTTP.respond_XML (XML.xslt (path_prefix <> "subject.xsl") xml) request respond
-							_ -> HTTP.respond_404 request respond
-				_ -> HTTP.respond_400 "Incorrect form field" request respond
+			case
+				(
+					BS.U8.toString <$> lookup "title" parameters,
+					BS.U8.toString <$> lookup "description" parameters)
+				of
+					(Just title, Just description) ->
+						let
+							subject =
+								DB.Subject.Body{
+									DB.Subject.title = title,
+									DB.Subject.description = description}
+							in
+								DB.Subject.add subject db >>= \case
+									Nothing ->
+										HTTP.respond_404 request respond
+									Just identifier ->
+										HTTP.respond_303 ("subject/" <> BS.U8.fromString (show identifier)) request respond
+					_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
-	where
-		redirect_result True = HTTP.respond_303 (path_prefix <> "subject.xml") request respond
-		redirect_result False = HTTP.respond_404 request respond
 
-course_page :: String -> String -> DB.Type -> Wai.Application
-course_page subject title db request respond =
-	DB.Course.get subject title db >>= \case
-		[course] ->
-			let
-				xml =
-					XML.element
-						"course"
-						[]
-						[
-							XML.element "subject" [] [XML.text (DB.Course.subject course)],
-							XML.element "title" [] [XML.text (DB.Course.title course)],
-							XML.element "description" [] [XML.text (DB.Course.description course)]]
-				in HTTP.respond_XML (XML.xslt (path_prefix <> "course.xsl") xml) request respond
-		_ -> HTTP.respond_404 request respond
-
-handle_course :: DB.Type -> Wai.Application
-handle_course db request respond
+handle_subject :: DB.Type -> DB.Subject.Identifier -> Wai.Application
+handle_subject db identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		HTTP.respond_405 request respond
+		DB.Subject.get identifier db >>= \case
+			[subject] ->
+				do
+					courses <- DB.Course.list identifier db
+					let
+						build_course_XML course =
+							XML.element
+								"course"
+								[]
+								[
+									XML.element "identifier" [] [XML.text (show (DB.Course.identifier course))],
+									XML.element "title" [] [XML.text (DB.Course.title (DB.Course.body course))],
+									XML.element "description" [] [XML.text (DB.Course.description (DB.Course.body course))]]
+						courses_XML =
+							XML.element "courses" [] (map build_course_XML courses)
+						xml =
+							XML.element
+								"subject"
+								[]
+								[
+									XML.element "identifier" [] [XML.text (show identifier)],
+									XML.element "title" [] [XML.text (DB.Subject.title subject)],
+									XML.element "description" [] [XML.text (DB.Subject.description subject)],
+									courses_XML]
+					HTTP.respond_XML (XML.xslt (path_prefix <> "subject.xsl") xml) request respond
+			_ -> HTTP.respond_404 request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-			case map (flip lookup parameters) ["subject", "course", "title", "description", "delete"] of
-				[Just subject', Just title', Nothing, Nothing, Nothing] ->
-					course_page (BS.U8.toString subject') (BS.U8.toString title') db request respond
-				[Just subject', Just course', Just title, Just description, Nothing] ->
+			case
+				(
+					BS.U8.toString <$> lookup "title" parameters,
+					BS.U8.toString <$> lookup "description" parameters,
+					BS.U8.toString <$> lookup "delete" parameters)
+				of
+					(_, _, Just _) ->
+						do
+							_ <- DB.Subject.delete identifier db
+							HTTP.respond_303 "../subjects" request respond
+					(Just title, Just description, Nothing) ->
+						let
+							subject =
+								DB.Subject.Record{
+									DB.Subject.identifier = identifier,
+									DB.Subject.body =
+										DB.Subject.Body{
+											DB.Subject.title = title,
+											DB.Subject.description = description}}
+							redirect_result True = HTTP.respond_303 "" request respond
+							redirect_result False = HTTP.respond_404 request respond
+							in redirect_result =<< DB.Subject.set subject db
+					_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
+handle_courses :: DB.Type -> DB.Subject.Identifier -> Wai.Application
+handle_courses db subject request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case map (flip lookup parameters) ["title", "description", "delete"] of
+				[Just title, Just description, Nothing] ->
 					let
-						subject = BS.U8.toString subject'
-						course = BS.U8.toString course'
 						new =
-							DB.Course.Record{
+							DB.Course.Body{
 								DB.Course.subject = subject,
 								DB.Course.title = BS.U8.toString title,
 								DB.Course.description = BS.U8.toString description}
 						in
-							DB.Course.set subject course new db >>= \case
-								True -> course_page subject course db request respond
-								False -> HTTP.respond_404 request respond
+							DB.Course.add new db >>= \case
+								Nothing ->
+									HTTP.respond_404 request respond
+								Just identifier ->
+									HTTP.respond_303 ("../course/" <> BS.U8.fromString (show identifier)) request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
+handle_course :: DB.Type -> DB.Course.Identifier -> Wai.Application
+handle_course db identifier request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
+		DB.Course.get identifier db >>= \case
+			[course] ->
+				HTTP.respond_XML
+					(XML.xslt
+						(path_prefix <> "course.xsl")
+						(XML.element
+							"course"
+							[]
+							[
+								XML.element "subject" [] [XML.text (show (DB.Course.subject course))],
+								XML.element "title" [] [XML.text (DB.Course.title course)],
+								XML.element "description" [] [XML.text (DB.Course.description course)]]))
+					request
+					respond
+			_ -> HTTP.respond_400 "Incorrect identifier" request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case map (flip lookup parameters) ["subject", "title", "description", "delete"] of
+				[Just subject, _, _, Just _] ->
+					do
+						_ <- DB.Course.delete identifier db
+						HTTP.respond_303 ("../subject/" <> subject) request respond
+				[Just subject', Just title, Just description, Nothing] ->
+					case reads (BS.U8.toString subject') of
+						((subject, _) : _) ->
+							let
+								new =
+									DB.Course.Record{
+										DB.Course.identifier = identifier,
+										DB.Course.body =
+											DB.Course.Body{
+												DB.Course.subject = subject,
+												DB.Course.title = BS.U8.toString title,
+												DB.Course.description = BS.U8.toString description}}
+								in
+									DB.Course.set new db >>= \case
+										True -> HTTP.respond_303 "" request respond
+										False -> HTTP.respond_404 request respond
+						_ -> HTTP.respond_400 "Incorrect subject" request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -194,7 +256,18 @@ handle_course db request respond
 handle :: [Data.Text.Text] -> DB.Type -> Wai.Middleware
 handle path db next request respond =
 	case path of
-		["account.xml"] -> handle_account db request respond
-		["subject.xml"] -> handle_subject db request respond
-		["course.xml"] -> handle_course db request respond
+		["account"] -> handle_account db request respond
+		["subjects"] -> handle_subjects db request respond
+		["subject", subject'] ->
+			case reads (Data.Text.unpack subject') of
+				((subject, _) : _) -> handle_subject db subject request respond
+				_ -> next request respond
+		["courses", subject'] ->
+			case reads (Data.Text.unpack subject') of
+				((subject, _) : _) -> handle_courses db subject request respond
+				_ -> next request respond
+		["course", course'] ->
+			case reads (Data.Text.unpack course') of
+				((course, _) : _) -> handle_course db course request respond
+				_ -> next request respond
 		_ -> next request respond

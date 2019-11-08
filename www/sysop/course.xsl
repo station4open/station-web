@@ -10,28 +10,23 @@
 	<html>
 		<head>
 			<title>SysOp: Course</title>
-			<link rel="stylesheet" type="text/css" href="base.css"/>
+			<link rel="stylesheet" type="text/css" href="../base.css"/>
+			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
 			<xsl:for-each select='course'>
-				<form action='subject.xml' method='POST'>
-					<input type='hidden' name='subject'>
-						<xsl:attribute name='value'><xsl:value-of select='subject'/></xsl:attribute>
-					</input>
-					<input type='submit' value='Back'/>
-				</form>
+				<a>
+					<xsl:attribute name='href'>../subject/<xsl:value-of select='subject'/></xsl:attribute>
+					Back
+				</a>
 				<section>
 					<h1>Course</h1>
+					<h2><xsl:value-of select='title'/></h2>
 					<form method='POST'>
 						<div class='flex'>
-							<input type='text' name='subject' readonly=''>
+							<input type='hidden' name='subject'>
 								<xsl:attribute name='value'><xsl:value-of select='subject'/></xsl:attribute>
-							</input>
-						</div>
-						<div class='flex'>
-							<input type='text' name='course' readonly=''>
-								<xsl:attribute name='value'><xsl:value-of select='title'/></xsl:attribute>
 							</input>
 						</div>
 						<label>
@@ -50,7 +45,7 @@
 						</label>
 						<label>Delete<input type='checkbox' name='delete'/></label>
 						<br/>
-						<input type='submit' value='Save'/>
+						<button type='submit'>Modify</button>
 					</form>
 				</section>
 			</xsl:for-each>

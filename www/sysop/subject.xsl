@@ -6,100 +6,72 @@
 >
 <xsl:import href='/menubar.xsl'/>
 <xsl:output method='xml' version='1.0' encoding='UTF-8' indent='yes'/>
-<xsl:template match='/'>
+<xsl:template match='/subject'>
 	<html>
 		<head>
 			<title>SysOp: Subject</title>
+			<link rel="stylesheet" type="text/css" href="../base.css"/>
+			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
-			<xsl:for-each select='subjects'>
-				<section>
-					<h1>Create new subject</h1>
-					<p>
-						<form method='POST'>
-							<label>
-								Title
-								<br/>
-								<input type='text' name='title'/>
-							</label>
-							<br/>
-							<label>
-								Description
-								<br/>
-								<textarea name='description'/>
-							</label>
-							<br/>
-							<button type='submit'>Create</button>
-						</form>
-					</p>
-				</section>
-				<section>
-					<h1>Modify existing subjects</h1>
-					<xsl:for-each select='item'>
-						<p>
-							<form method='POST'>
-								<button type='submit'>Open</button>
-								<input type='text' name='subject' readonly=''>
-									<xsl:attribute name='value'><xsl:value-of select='title'/></xsl:attribute>
-								</input>
-							</form>
-						</p>
-						<p><xsl:value-of select='description'/></p>
-					</xsl:for-each>
-				</section>
-			</xsl:for-each>
-			<xsl:for-each select='subject'>
-				<form method='GET'>
-					<button type='submit'>Back</button>
-				</form>
-				<section>
-					<h1>Subject</h1>
-					<p>
-						<form method='POST'>
-							<input type='text' name='subject' readonly=''>
+			<a href='../subjects'>Back</a>
+			<section>
+				<h1>Subject</h1>
+				<h2><xsl:value-of select='title'/></h2>
+				<form method='POST'>
+					<label>
+						Title
+						<div class='flex'>
+							<input type='text' name='title'>
 								<xsl:attribute name='value'><xsl:value-of select='title'/></xsl:attribute>
 							</input>
-							<br/>
-							<label>
-								Title
-								<br/>
-								<input type='text' name='title'>
-									<xsl:attribute name='value'><xsl:value-of select='title'/></xsl:attribute>
-								</input>
-							</label>
-							<br/>
-							<label>
-								Description
-								<br/>
-								<textarea name='description'><xsl:value-of select='description'/></textarea>
-							</label>
-							<br/>
-							<label>Delete<input type='checkbox' name='delete'/></label>
-							<br/>
-							<button type='submit'>Save</button>
-						</form>
+						</div>
+					</label>
+					<label>
+						Description
+						<div class='flex'>
+							<textarea name='description'><xsl:value-of select='description'/></textarea>
+						</div>
+					</label>
+					<label>Delete<input type='checkbox' name='delete'/></label>
+					<br/>
+					<button type='submit'>Modify</button>
+				</form>
+			</section>
+			<section>
+				<h1>Create course</h1>
+				<form method='POST'>
+					<xsl:attribute name='action'>../courses/<xsl:value-of select='identifier'/></xsl:attribute>
+					<label>
+						Title
+						<div class='flex'>
+							<input type='text' name='title'/>
+						</div>
+					</label>
+					<label>
+						Description
+						<div class='flex'>
+							<textarea name='description'/>
+						</div>
+					</label>
+					<button type='submit'>Create</button>
+				</form>
+			</section>
+			<section>
+				<h1>Modify existing courses</h1>
+				<xsl:for-each select='courses/course'>
+					<h2>
+						<a>
+							<xsl:attribute name='href'>../course/<xsl:value-of select='identifier'/></xsl:attribute>
+							<xsl:value-of select='title'/>
+						</a>
+					</h2>
+					<p>
+							<xsl:value-of select='description'/>
 					</p>
-				</section>
-				<section>
-					<h1>Modify existing courses</h1>
-					<xsl:for-each select='courses/course'>
-						<p>
-							<form action='course.xml' method='POST'>
-								<button type='submit'>Open</button>
-								<input type='hidden' name='subject'>
-									<xsl:attribute name='value'><xsl:value-of select='../../title'/></xsl:attribute>
-								</input>
-								<input type='text' name='course' readonly=''>
-									<xsl:attribute name='value'><xsl:value-of select='title'/></xsl:attribute>
-								</input>
-								<br/>
-								<xsl:value-of select='description'/>
-							</form>
-						</p>
-					</xsl:for-each>
-				</section>
-			</xsl:for-each>
+				</xsl:for-each>
+			</section>
 		</body>
 	</html>
 </xsl:template>
