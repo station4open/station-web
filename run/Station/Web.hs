@@ -21,6 +21,7 @@ import qualified Station.XML as XML
 import qualified Station.Database as DB
 import qualified Station.Database.User as DB.User
 import qualified Station.HTTP as HTTP
+import qualified Station.Web.Session as Session
 import qualified Station.Web.Bin as Web.Bin
 import qualified Station.Web.SysOp as Web.SysOp
 
@@ -67,11 +68,11 @@ handle_home db request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle :: DB.Type -> Wai.Middleware
-handle db next request respond =
+handle :: Session.Type -> Wai.Middleware
+handle session next request respond =
 	case Wai.pathInfo request of
 		"bin" : path -> Web.Bin.handle path next request respond
-		"sysop" : path -> Web.SysOp.handle path db next request respond
-		["home.xml"] -> handle_home db request respond
-		["account.xml"] -> handle_account db request respond
+		"sysop" : path -> Web.SysOp.handle session path next request respond
+		["home"] -> handle_home (Session.database session) request respond
+		["account"] -> handle_account (Session.database session) request respond
 		_ -> next request respond

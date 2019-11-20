@@ -16,7 +16,8 @@
 					'input',
 					function () {
 						for (var j=0; j<textboxes.length; ++j)
-							textboxes.item(j).disabled = this.checked;
+							if (!textboxes.item(j).readOnly)
+								textboxes.item(j).disabled = this.checked;
 					}
 				)
 			}

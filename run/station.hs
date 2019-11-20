@@ -1,10 +1,10 @@
 module Main (main) where
 
-import Prelude ()
+import Prelude (fromEnum)
 import Data.Bool (Bool (True, False))
-import Data.Maybe (fromMaybe)
-import Data.List ((++), any)
-import Data.Function (($), (.))
+import Data.Maybe (Maybe (Nothing, Just), maybe, fromMaybe)
+import Data.List ((++))
+import Data.Function (($))
 import Data.Functor ((<$>))
 import Control.Monad (return, (>>=), (=<<))
 import Text.Show (show)
@@ -22,8 +22,11 @@ import qualified Network.Wai.Handler.Warp as Warp
 import qualified Database.PostgreSQL.Simple as DB
 
 import qualified Station.Constant as Constant
+import qualified Station.Constant.Role as Constant.Role
+import qualified Station.Database.User as DB.User
 import qualified Station.HTTP as HTTP
 import qualified Station.Web as Web
+import qualified Station.Web.Session as Session
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}
 
@@ -41,8 +44,17 @@ handle_home next request =
 		[] -> HTTP.respond_301 Constant.public_home request
 		_ -> next request
 
-auth_check :: DB.Connection -> Wai.Middleware
-auth_check db =
+get_user :: DB.Connection -> Wai.Request -> IO (Maybe DB.User.Type)
+get_user db request =
+	case HTTP.auth_user request of
+		Nothing -> return Nothing
+		Just name ->
+			DB.User.get (BS.C8.unpack name) db >>= \case
+				[user] -> return (Just user)
+				_ -> return Nothing
+
+auth_check :: Maybe DB.User.Type -> Wai.Middleware
+auth_check user' =
 	let
 		protect :: Wai.Request -> IO Bool
 		protect request =
@@ -52,13 +64,16 @@ auth_check db =
 				"home.xhtml" : [] -> return False
 				_ -> return True
 		check :: HttpAuth.CheckCreds
-		check user password =
-			do
-				hashed <- DB.query db "SELECT \"PASSWORD\" FROM \"USER\" WHERE \"NAME\"=?" (DB.Only user)
-				let
-					pass :: Crypto.Scrypt.Pass
-					pass = Crypto.Scrypt.Pass password
-				return (any (Crypto.Scrypt.verifyPass' pass . Crypto.Scrypt.EncryptedPass . DB.fromOnly) hashed)
+		check _ password =
+			return
+				(maybe
+					False
+					(\ user ->
+						Crypto.Scrypt.verifyPass' (Crypto.Scrypt.Pass password)
+							$ Crypto.Scrypt.EncryptedPass
+							$ BS.C8.pack
+							$ DB.User.password user)
+					user')
 		realm :: HttpAuth.AuthSettings
 		realm = Constant.auth_realm{HttpAuth.authIsProtected = protect}
 		in HttpAuth.basicAuth check realm
@@ -78,35 +93,49 @@ main =
 			[] ->
 				do
 					db <- DB.connectPostgreSQL (BS.C8.pack dburl)
-					let application =
-						HTTP.log log $
-						handle_home $
-						auth_check db $
-						Web.handle db $
-						Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path)
-					Warp.run port application
-			["adduser", username@(_:_), password@(_:_)] ->
-				do
-					db <- DB.connectPostgreSQL (BS.C8.pack dburl)
-					encrypted <- Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.C8.pack password))
-					n <-
-						DB.execute
-							db
-							"INSERT INTO \"USER\"(\"NAME\",\"PASSWORD\") VALUES(?,?)"
-							(username, Crypto.Scrypt.getEncryptedPass encrypted)
-					case n of
-						1 ->
-							do
-								putStrLn "OK"
-								exitSuccess
-						_ ->
-							do
-								putStrLn "Fail"
-								exitFailure
+					let handle request respond =
+						do
+							user <- get_user db request
+							let application =
+								HTTP.log log
+									$ handle_home
+									$ auth_check user
+									$ Web.handle
+										Session.Record{
+											Session.database = db,
+											Session.user = user}
+									$ Wai.Static.staticApp
+									$ Wai.Static.defaultWebAppSettings static_path
+							application request respond
+					Warp.run port handle
+			["adduser", username@(_:_), password@(_:_), role's@(_:_)] ->
+				case readMaybe role's of
+					Just role ->
+						do
+							db <- DB.connectPostgreSQL (BS.C8.pack dburl)
+							encrypted <- Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.C8.pack password))
+							n <-
+								DB.execute
+									db
+									"INSERT INTO \"USER\"(\"NAME\",\"PASSWORD\") VALUES(?,?,?)"
+									(username, Crypto.Scrypt.getEncryptedPass encrypted, fromEnum (role :: Constant.Role.Type))
+							case n of
+								1 ->
+									do
+										putStrLn "OK"
+										exitSuccess
+								_ ->
+									do
+										putStrLn "Fail"
+										exitFailure
+					_ ->
+						do
+							putStrLn "Unknown role"
+							exitFailure
 			_ ->
 				do
 					putStrLn "Commands:"
 					putStrLn "\t(no argument): start server"
-					putStrLn "\tadduser {username} {password}: add a new user"
+					putStrLn "\tadduser {username} {password} {role}: add a new user"
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}

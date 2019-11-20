@@ -12,7 +12,7 @@ import Data.Function (flip)
 import Data.Functor ((<$>))
 import Control.Monad ((>>=), (=<<))
 import Text.Show (show)
-import Text.Read (reads)
+import Text.Read (readMaybe)
 import qualified Data.ByteString.Char8 as BS.C8
 import qualified Data.ByteString.UTF8 as BS.U8
 import qualified Data.Text (Text, unpack)
@@ -20,12 +20,14 @@ import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Parse as Wai.Parse
 
+import qualified Station.Constant.Role as Constant.Role
 import qualified Station.XML as XML
 import qualified Station.Database as DB
 import qualified Station.Database.User as DB.User
 import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.HTTP as HTTP
+import qualified Station.Web.Session as Session
 
 path_prefix :: IsString s => s
 path_prefix = "/sysop/"
@@ -45,8 +47,8 @@ handle_account db request respond
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case map (flip lookup parameters) ["user", "name", "role", "password", "delete"] of
 				[Nothing, Just name, Just role', Just password, Nothing] ->
-					case reads (BS.U8.toString role') of
-						(role, "") : _ ->
+					case readMaybe (BS.U8.toString role') of
+						Just role ->
 							let new =
 								DB.User.Record{
 									DB.User.name = BS.U8.toString name,
@@ -59,8 +61,8 @@ handle_account db request respond
 								BS.C8.putStrLn role'
 								HTTP.respond_404 request respond
 				[Just user, Just name, Just role', Just password, Nothing] ->
-					case reads (BS.U8.toString role') of
-						(role, "") : _ ->
+					case readMaybe (BS.U8.toString role') of
+						Just role ->
 							let new =
 								DB.User.Record{
 									DB.User.name = BS.U8.toString name,
@@ -78,7 +80,7 @@ handle_account db request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 	where
-		redirect_result True = HTTP.respond_303 (path_prefix <> "account.xml") request respond
+		redirect_result True = HTTP.respond_303 (path_prefix <> "account") request respond
 		redirect_result False = HTTP.respond_404 request respond
 
 handle_subjects :: DB.Type -> Wai.Application
@@ -233,8 +235,8 @@ handle_course db identifier request respond
 						_ <- DB.Course.delete identifier db
 						HTTP.respond_303 ("../subject/" <> subject) request respond
 				[Just subject', Just title, Just description, Nothing] ->
-					case reads (BS.U8.toString subject') of
-						((subject, _) : _) ->
+					case readMaybe (BS.U8.toString subject') of
+						Just subject ->
 							let
 								new =
 									DB.Course.Record{
@@ -253,21 +255,24 @@ handle_course db identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle :: [Data.Text.Text] -> DB.Type -> Wai.Middleware
-handle path db next request respond =
-	case path of
-		["account"] -> handle_account db request respond
-		["subjects"] -> handle_subjects db request respond
-		["subject", subject'] ->
-			case reads (Data.Text.unpack subject') of
-				((subject, _) : _) -> handle_subject db subject request respond
+handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
+handle session path next request respond =
+	case session of
+		Session.Record{Session.user = Just DB.User.Record{DB.User.role = Constant.Role.SysOp}, Session.database = db} ->
+			case path of
+				["account"] -> handle_account db request respond
+				["subjects"] -> handle_subjects db request respond
+				["subject", subject'] ->
+					case readMaybe (Data.Text.unpack subject') of
+						Just subject -> handle_subject db subject request respond
+						_ -> next request respond
+				["courses", subject'] ->
+					case readMaybe (Data.Text.unpack subject') of
+						Just subject -> handle_courses db subject request respond
+						_ -> next request respond
+				["course", course'] ->
+					case readMaybe (Data.Text.unpack course') of
+						Just course -> handle_course db course request respond
+						_ -> next request respond
 				_ -> next request respond
-		["courses", subject'] ->
-			case reads (Data.Text.unpack subject') of
-				((subject, _) : _) -> handle_courses db subject request respond
-				_ -> next request respond
-		["course", course'] ->
-			case reads (Data.Text.unpack course') of
-				((course, _) : _) -> handle_course db course request respond
-				_ -> next request respond
-		_ -> next request respond
+		_ -> HTTP.respond_403 request respond

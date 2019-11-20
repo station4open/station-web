@@ -25,6 +25,7 @@ executable station
     Station.Database.Course
     Station.HTTP
     Station.Web
+    Station.Web.Session
     Station.Web.Bin
     Station.Web.SysOp
   build-depends:
