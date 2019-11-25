@@ -1,7 +1,6 @@
 module Station.Database.Subject (
 	Identifier,
-	BodyType (Body, title, description),
-	Type (Record, identifier, body),
+	Type (Record, identifier, title, description),
 	get, list, delete, add, set
 ) where
 
@@ -20,33 +19,27 @@ import qualified Database.PostgreSQL.Simple.FromRow as DB
 
 type Identifier = Int32
 
-data BodyType =
-	Body{
-		title :: String,
-		description :: String}
-
-instance DB.ToRow BodyType where
-	toRow subject = [DB.toField (title subject), DB.toField (description subject)]
-
-instance DB.FromRow BodyType where
-	fromRow = Body <$> DB.field <*> DB.field
-
 data Type =
 	Record{
 		identifier :: Identifier,
-		body :: BodyType}
+		title :: String,
+		description :: String}
 
 instance DB.ToRow Type where
-	toRow subject = DB.toField (identifier subject) : DB.toRow (body subject)
+	toRow subject =
+		[
+			DB.toField (identifier subject),
+			DB.toField (title subject),
+			DB.toField (description subject)]
 
 instance DB.FromRow Type where
-	fromRow = Record <$> DB.field <*> DB.fromRow
+	fromRow = Record <$> DB.field <*> DB.field <*> DB.field
 
-get :: Identifier -> DB.Connection -> IO [BodyType]
+get :: Identifier -> DB.Connection -> IO [Type]
 get subject_identifier db =
 	DB.query
 		db
-		"SELECT \"TITLE\",\"DESCRIPTION\" FROM \"SUBJECT\" WHERE \"IDENTIFIER\"=?"
+		"SELECT \"IDENTIFIER\",\"TITLE\",\"DESCRIPTION\" FROM \"SUBJECT\" WHERE \"IDENTIFIER\"=?"
 		(DB.Only subject_identifier)
 
 list :: DB.Connection -> IO [Type]
@@ -61,8 +54,8 @@ delete subject_identifier db =
 				"DELETE FROM \"SUBJECT\" WHERE \"IDENTIFIER\"=?"
 				(DB.Only subject_identifier)
 
-add :: BodyType -> DB.Connection -> IO (Maybe Int32)
-add subject db =
+add :: (String, String) -> DB.Connection -> IO (Maybe Int32)
+add (subject_title, subject_description) db =
 	(\case
 		[DB.Only result] -> (Just result)
 		_ -> Nothing)
@@ -70,7 +63,7 @@ add subject db =
 			DB.query
 				db
 				"INSERT INTO \"SUBJECT\"(\"TITLE\",\"DESCRIPTION\") VALUES (?,?) RETURNING \"IDENTIFIER\""
-				(title subject, description subject)
+				(subject_title, subject_description)
 
 set :: Type -> DB.Connection -> IO Bool
 set subject db =
@@ -79,4 +72,4 @@ set subject db =
 			DB.execute
 				db
 				"UPDATE \"SUBJECT\" SET \"TITLE\"=?,\"DESCRIPTION\"=? WHERE \"IDENTIFIER\"=?"
-				(title (body subject), description (body subject), identifier subject)
+				(title subject, description subject, identifier subject)

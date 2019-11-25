@@ -1,7 +1,6 @@
 module Station.Database.Course (
 	Identifier,
-	BodyType (Body, subject, title, description),
-	Type (Record, identifier, body),
+	Type (Record, identifier, subject, title, description),
 	get, list, delete, add, set
 ) where
 
@@ -22,34 +21,29 @@ import qualified Station.Database.Subject as DB.Subject
 
 type Identifier = Int32
 
-data BodyType =
-	Body{
+data Type =
+	Record{
+		identifier :: Identifier,
 		subject :: DB.Subject.Identifier,
 		title :: String,
 		description :: String}
 
-instance DB.ToRow BodyType where
-	toRow course = [DB.toField (subject course), DB.toField (title course), DB.toField (description course)]
-
-instance DB.FromRow BodyType where
-	fromRow = Body <$> DB.field <*> DB.field <*> DB.field
-
-data Type =
-	Record{
-		identifier :: Identifier,
-		body :: BodyType}
-
 instance DB.ToRow Type where
-	toRow course = DB.toField (identifier course) : DB.toRow (body course)
+	toRow course =
+		[
+			DB.toField (identifier course),
+			DB.toField (subject course),
+			DB.toField (title course),
+			DB.toField (description course)]
 
 instance DB.FromRow Type where
-	fromRow = Record <$> DB.field <*> DB.fromRow
+	fromRow = Record <$> DB.field <*> DB.field <*> DB.field <*> DB.field
 
-get :: Identifier -> DB.Connection -> IO [BodyType]
+get :: Identifier -> DB.Connection -> IO [Type]
 get course_identifier db =
 	DB.query
 		db
-		"SELECT \"SUBJECT\",\"TITLE\",\"DESCRIPTION\" FROM \"COURSE\" WHERE \"IDENTIFIER\"=?"
+		"SELECT \"IDENTIFIER\",\"SUBJECT\",\"TITLE\",\"DESCRIPTION\" FROM \"COURSE\" WHERE \"IDENTIFIER\"=?"
 		(DB.Only course_identifier)
 
 list :: DB.Subject.Identifier -> DB.Connection -> IO [Type]
@@ -68,8 +62,8 @@ delete course_identifier db =
 				"DELETE FROM \"COURSE\" WHERE \"IDENTIFIER\"=?"
 				(DB.Only course_identifier)
 
-add :: BodyType -> DB.Connection -> IO (Maybe Identifier)
-add course db =
+add :: (DB.Subject.Identifier, String, String) -> DB.Connection -> IO (Maybe Identifier)
+add (course_subject, course_title, course_description) db =
 	(\case
 		[DB.Only result] -> (Just result)
 		_ -> Nothing)
@@ -77,7 +71,7 @@ add course db =
 			DB.query
 				db
 				"INSERT INTO \"COURSE\"(\"SUBJECT\",\"TITLE\",\"DESCRIPTION\") VALUES (?,?,?) RETURNING \"IDENTIFIER\""
-				(subject course, title course, description course)
+				(course_subject, course_title, course_description)
 
 set :: Type -> DB.Connection -> IO Bool
 set course db =
@@ -86,4 +80,4 @@ set course db =
 			DB.execute
 				db
 				"UPDATE \"COURSE\" SET \"SUBJECT\"=?,\"TITLE\"=?,\"DESCRIPTION\"=? WHERE \"IDENTIFIER\"=?"
-				(subject (body course), title (body course), description (body course), identifier course)
+				(subject course, title course, description course, identifier course)
