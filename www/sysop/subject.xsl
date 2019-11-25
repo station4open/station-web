@@ -11,7 +11,7 @@
 		<head>
 			<title>SysOp: Subject</title>
 			<link rel="stylesheet" type="text/css" href="../base.css"/>
-			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
+			<script type='application/ecmascript' src='../../delete_disable.js' async=''/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
