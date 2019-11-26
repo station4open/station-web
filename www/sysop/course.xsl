@@ -48,11 +48,42 @@
 				</form>
 			</section>
 			<section>
-				<xsl:for-each select='lessons'>
-					<h1>Lessons</h1>
-					<xsl:for-each select='lesson'>
-						<p><xsl:value-of select='number'/>: <xsl:value-of select='title'/></p>
-					</xsl:for-each>
+				<h1>Create lessons</h1>
+				<form method='POST'>
+					<xsl:attribute name='action'>../lessons/<xsl:value-of select='identifier'/></xsl:attribute>
+					<label>
+						Title
+						<div class='flex'>
+							<input type='text' name='title'/>
+						</div>
+					</label>
+					<label>
+						Content
+						<div class='flex'>
+							<textarea name='content'/>
+						</div>
+					</label>
+					<button type='submit'>Create</button>
+				</form>
+			</section>
+			<section>
+				<h1>Modify existing lessons</h1>
+				<xsl:for-each select='lessons/lesson'>
+					<table>
+						<tbody>
+							<tr>
+								<td>
+									<a>
+										<xsl:attribute name='href'>../lesson/<xsl:value-of select='identifier'/></xsl:attribute>
+										<xsl:value-of select='number'/>
+									</a>.
+								</td>
+								<td>
+									<xsl:value-of select='title'/>
+								</td>
+							</tr>
+						</tbody>
+					</table>
 				</xsl:for-each>
 			</section>
 		</body>

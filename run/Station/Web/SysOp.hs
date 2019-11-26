@@ -129,27 +129,23 @@ handle_subject db identifier request respond
 			[subject] ->
 				do
 					courses <- DB.Course.list identifier db
-					let
-						build_course_XML course =
-							XML.element
-								"course"
-								[]
-								[
-									XML.element "identifier" [] [XML.text (show (DB.Course.identifier course))],
-									XML.element "title" [] [XML.text (DB.Course.title course)],
-									XML.element "description" [] [XML.text (DB.Course.description course)]]
-						courses_XML =
-							XML.element "courses" [] (map build_course_XML courses)
-						xml =
-							XML.element
-								"subject"
-								[]
-								[
-									XML.element "identifier" [] [XML.text (show identifier)],
-									XML.element "title" [] [XML.text (DB.Subject.title subject)],
-									XML.element "description" [] [XML.text (DB.Subject.description subject)],
-									courses_XML]
-					HTTP.respond_XML (XML.xslt (path_prefix <> "subject.xsl") xml) request respond
+					HTTP.respond_XML
+						(XML.xslt
+							(path_prefix <> "subject.xsl")
+							(XML.element "subject" [] [
+								XML.element "identifier" [] [XML.text (show identifier)],
+								XML.element "title" [] [XML.text (DB.Subject.title subject)],
+								XML.element "description" [] [XML.text (DB.Subject.description subject)],
+								XML.element "courses" []
+									(map
+										(\ course ->
+											XML.element "course" [] [
+												XML.element "identifier" [] [XML.text (show (DB.Course.identifier course))],
+												XML.element "title" [] [XML.text (DB.Course.title course)],
+												XML.element "description" [] [XML.text (DB.Course.description course)]])
+										courses)]))
+						request
+						respond
 			_ -> HTTP.respond_404 request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
@@ -183,8 +179,8 @@ handle_courses db subject request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-			case map (flip lookup parameters) ["title", "description", "delete"] of
-				[Just title, Just description, Nothing] ->
+			case map (flip lookup parameters) ["title", "description"] of
+				[Just title, Just description] ->
 					DB.Course.add (subject, BS.U8.toString title, BS.U8.toString description) db >>= \case
 						Nothing ->
 							HTTP.respond_404 request respond
@@ -205,6 +201,7 @@ handle_course db identifier request respond
 						(XML.xslt
 							(path_prefix <> "course.xsl")
 							(XML.element "course" [] [
+								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "subject" [] [XML.text (show (DB.Course.subject course))],
 								XML.element "title" [] [XML.text (DB.Course.title course)],
 								XML.element "description" [] [XML.text (DB.Course.description course)],
@@ -246,6 +243,27 @@ handle_course db identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
+handle_lessons :: DB.Type -> DB.Subject.Identifier -> Wai.Application
+handle_lessons db course request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case map (flip lookup parameters) ["title", "content"] of
+				[Just title, Just content] ->
+					DB.Lesson.add (course, BS.U8.toString title, BS.U8.toString content) db >>= \case
+						Nothing ->
+							HTTP.respond_404 request respond
+						Just identifier ->
+							HTTP.respond_303 ("../lesson/" <> BS.U8.fromString (show identifier)) request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
+handle_lesson :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_lesson _db _identifier request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
 handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
 	case session of
@@ -264,6 +282,14 @@ handle session path next request respond =
 				["course", course'] ->
 					case readMaybe (Data.Text.unpack course') of
 						Just course -> handle_course db course request respond
+						_ -> next request respond
+				["lessons", course'] ->
+					case readMaybe (Data.Text.unpack course') of
+						Just course -> handle_lessons db course request respond
+						_ -> next request respond
+				["lesson", lesson'] ->
+					case readMaybe (Data.Text.unpack lesson') of
+						Just lesson -> handle_lesson db lesson request respond
 						_ -> next request respond
 				_ -> next request respond
 		_ -> HTTP.respond_403 request respond

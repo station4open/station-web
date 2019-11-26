@@ -1,14 +1,14 @@
 module Station.Database.Lesson (
 	Identifier, Number,
 	Type (Record, identifier, course, number, title, content),
-	get, list, delete, add
+	get, list, delete, add, set
 ) where
 
-import Prelude ()
+import Prelude (succ, fromIntegral)
 import Data.Bool (Bool)
 import Data.Eq ((==))
 import Data.Maybe (Maybe (Nothing, Just))
-import Data.Int (Int32)
+import Data.Int (Int8, Int32)
 import Data.String (String)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (return, (>>=))
@@ -68,7 +68,7 @@ delete lesson_identifier db =
 
 add :: (DB.Course.Identifier, String, String) -> DB.Connection -> IO (Maybe Identifier)
 add (lesson_course, lesson_title, lesson_content) db =
-	DB.query db "SELECT COUNT(*) FROM \"LESSON\" WHERE \"COURSE\"=?" (DB.Only lesson_course) >>= \case
+	DB.query db "SELECT COUNT(*)::INTEGER FROM \"LESSON\" WHERE \"COURSE\"=?" (DB.Only lesson_course) >>= \case
 		[DB.Only n] ->
 			(\case
 				[DB.Only result] -> (Just result)
@@ -79,5 +79,16 @@ add (lesson_course, lesson_title, lesson_content) db =
 						"INSERT INTO \"LESSON\"(\"COURSE\",\"NUMBER\",\"TITLE\",\"CONTENT\") \
 							\VALUES (?,?,?,?) \
 							\RETURNING \"IDENTIFIER\""
-						(lesson_course, n :: Number, lesson_title, lesson_content)
+						(lesson_course, succ n :: Number, lesson_title, lesson_content)
 		_ -> return Nothing
+
+set :: Type -> DB.Connection -> IO Bool
+set lesson db =
+	(1 ==)
+		<$>
+			DB.execute
+				db
+				"UPDATE \"LESSON\" \
+					\SET \"COURSE\"=?,\"NUMBER\"=?,\"TITLE\"=?,\"CONTENT\"=? \
+					\WHERE \"IDENTIFIER\"=?"
+				(course lesson, number lesson, title lesson, content lesson, identifier lesson)
