@@ -37,6 +37,51 @@
 					<button type='submit'>Modify</button>
 				</form>
 			</section>
+			<section>
+				<h1>Answers</h1>
+				<xsl:for-each select='answers/answer'>
+					<form method='POST'>
+						<xsl:attribute name='action'>../answer/<xsl:value-of select='identifier'/></xsl:attribute>
+						<input type='hidden' name='identifier'>
+							<xsl:attribute name='value'><xsl:value-of select='identifier'/></xsl:attribute>
+						</input>
+						<input type='hidden' name='question'>
+							<xsl:attribute name='value'><xsl:value-of select='../../identifier'/></xsl:attribute>
+						</input>
+						<div class='flex'>
+							<input type='text' name='text'>
+								<xsl:attribute name='value'><xsl:value-of select='text'/></xsl:attribute>
+							</input>
+						</div>
+						<label>
+							<div>
+								Mark
+								<input type='number' name='mark'>
+									<xsl:attribute name='value'><xsl:value-of select='mark'/></xsl:attribute>
+								</input>
+								<label>Delete<input type='checkbox' name='delete'/></label>
+							</div>
+						</label>
+						<button type='submit'>Modify</button>
+					</form>
+				</xsl:for-each>
+				<form method='POST'>
+					<xsl:attribute name='action'>../answer-new/<xsl:value-of select='identifier'/></xsl:attribute>
+					<input type='hidden' name='question'>
+						<xsl:attribute name='value'><xsl:value-of select='identifier'/></xsl:attribute>
+					</input>
+					<div class='flex'>
+						<input type='text' name='text'/>
+					</div>
+					<label>
+						<div>
+							Mark
+							<input type='number' name='mark' value='0'/>
+						</div>
+					</label>
+					<button type='submit'>Create</button>
+				</form>
+			</section>
 		</body>
 	</html>
 </xsl:template>

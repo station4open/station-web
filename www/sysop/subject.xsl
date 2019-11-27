@@ -42,7 +42,7 @@
 			<section>
 				<h1>Create course</h1>
 				<form method='POST'>
-					<xsl:attribute name='action'>../courses/<xsl:value-of select='identifier'/></xsl:attribute>
+					<xsl:attribute name='action'>../course-new/<xsl:value-of select='identifier'/></xsl:attribute>
 					<label>
 						Title
 						<div class='flex'>

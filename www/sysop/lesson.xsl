@@ -51,7 +51,7 @@
 			<section>
 				<h1>Create question</h1>
 				<form method='POST'>
-					<xsl:attribute name='action'>../questions/<xsl:value-of select='identifier'/></xsl:attribute>
+					<xsl:attribute name='action'>../question-new/<xsl:value-of select='identifier'/></xsl:attribute>
 					<label>
 						Question
 						<div class='flex'>

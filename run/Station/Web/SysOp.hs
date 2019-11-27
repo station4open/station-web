@@ -8,7 +8,7 @@ import Data.Tuple (fst)
 import Data.Monoid ((<>))
 import Data.List (map, lookup)
 import Data.String (IsString)
-import Data.Function (flip)
+import Data.Function ((.), flip)
 import Data.Functor ((<$>))
 import Control.Monad ((>>=), (=<<))
 import Text.Show (show)
@@ -28,6 +28,7 @@ import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.Database.Lesson as DB.Lesson
 import qualified Station.Database.Question as DB.Question
+import qualified Station.Database.Answer as DB.Answer
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Session as Session
 
@@ -90,19 +91,17 @@ handle_subjects db request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		do
 			subjects <- DB.Subject.list db
-			let
-				xml_item subject =
-					XML.element
-						"item"
-						[]
-						[
-							XML.element "identifier" [] [XML.text (show (DB.Subject.identifier subject))],
-							XML.element "title" [] [XML.text (DB.Subject.title subject)],
-							XML.element "description" [] [XML.text (DB.Subject.description subject)]]
 			HTTP.respond_XML
 				(XML.xslt
 					(path_prefix <> "subjects.xsl")
-					(XML.element "subjects" [] (map xml_item subjects)))
+					(XML.element "subjects" []
+						(map
+							(\ subject ->
+								XML.element "item" [] [
+									XML.element "identifier" [] [XML.text (show (DB.Subject.identifier subject))],
+									XML.element "title" [] [XML.text (DB.Subject.title subject)],
+									XML.element "description" [] [XML.text (DB.Subject.description subject)]])
+							subjects)))
 				request
 				respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
@@ -175,8 +174,8 @@ handle_subject db identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_courses :: DB.Type -> DB.Subject.Identifier -> Wai.Application
-handle_courses db subject request respond
+handle_course_new :: DB.Type -> DB.Subject.Identifier -> Wai.Application
+handle_course_new db subject request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
@@ -244,8 +243,8 @@ handle_course db identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_lessons :: DB.Type -> DB.Course.Identifier -> Wai.Application
-handle_lessons db course request respond
+handle_lesson_new :: DB.Type -> DB.Course.Identifier -> Wai.Application
+handle_lesson_new db course request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
@@ -314,8 +313,8 @@ handle_lesson db identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_questions :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
-handle_questions db lesson request respond
+handle_question_new :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_question_new db lesson request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
@@ -336,14 +335,22 @@ handle_question db identifier request respond
 		DB.Question.get identifier db >>= \case
 			[question] ->
 				do
-					--	answers <- DB.Answer.list identifier db
+					answers <- DB.Answer.list identifier db
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "question.xsl")
 							(XML.element "question" [] [
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "lesson" [] [XML.text (show (DB.Question.lesson question))],
-								XML.element "text" [] [XML.text (DB.Question.text question)]]))
+								XML.element "text" [] [XML.text (DB.Question.text question)],
+								XML.element "answers" []
+									(map
+										(\ answer ->
+											XML.element "answer" [] [
+												XML.element "identifier" [] [XML.text (show (DB.Answer.identifier answer))],
+												XML.element "text" [] [XML.text (DB.Answer.text answer)],
+												XML.element "mark" [] [XML.text (show (DB.Answer.mark answer))]])
+										answers)]))
 						request
 						respond
 			_ -> HTTP.respond_400 "Incorrect identifier" request respond
@@ -373,6 +380,51 @@ handle_question db identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
+handle_answer_new :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_answer_new db question request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case (lookup "text" parameters, (readMaybe . BS.U8.toString) =<< lookup "mark" parameters) of
+				(Just text, Just mark) ->
+					DB.Answer.add (question, BS.U8.toString text, mark) db >>= \case
+						Nothing ->
+							HTTP.respond_404 request respond
+						Just _ ->
+							HTTP.respond_303 ("../question/" <> BS.U8.fromString (show question)) request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
+handle_answer :: DB.Type -> DB.Answer.Identifier -> Wai.Application
+handle_answer db identifier request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case map (flip lookup parameters) ["question", "text", "mark", "delete"] of
+				[Just question, _, _, Just _] ->
+					do
+						_ <- DB.Answer.delete identifier db
+						HTTP.respond_303 ("../question/" <> question) request respond
+				[Just question', Just text, Just mark', Nothing] ->
+					case (readMaybe (BS.U8.toString question'), readMaybe (BS.U8.toString mark')) of
+						(Just question, Just mark) ->
+							let
+								new =
+									DB.Answer.Record{
+										DB.Answer.identifier = identifier,
+										DB.Answer.question = question,
+										DB.Answer.text = BS.U8.toString text,
+										DB.Answer.mark = mark}
+								in
+									DB.Answer.set new db >>= \case
+										True -> HTTP.respond_303 ("../question/" <> question') request respond
+										False -> HTTP.respond_404 request respond
+						_ -> HTTP.respond_400 "Incorrect question" request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
 handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
 	case session of
@@ -384,29 +436,37 @@ handle session path next request respond =
 					case readMaybe (Data.Text.unpack subject') of
 						Just subject -> handle_subject db subject request respond
 						_ -> next request respond
-				["courses", subject'] ->
+				["course-new", subject'] ->
 					case readMaybe (Data.Text.unpack subject') of
-						Just subject -> handle_courses db subject request respond
+						Just subject -> handle_course_new db subject request respond
 						_ -> next request respond
 				["course", course'] ->
 					case readMaybe (Data.Text.unpack course') of
 						Just course -> handle_course db course request respond
 						_ -> next request respond
-				["lessons", course'] ->
+				["lesson-new", course'] ->
 					case readMaybe (Data.Text.unpack course') of
-						Just course -> handle_lessons db course request respond
+						Just course -> handle_lesson_new db course request respond
 						_ -> next request respond
 				["lesson", lesson'] ->
 					case readMaybe (Data.Text.unpack lesson') of
 						Just lesson -> handle_lesson db lesson request respond
 						_ -> next request respond
-				["questions", lesson'] ->
+				["question-new", lesson'] ->
 					case readMaybe (Data.Text.unpack lesson') of
-						Just lesson -> handle_questions db lesson request respond
+						Just lesson -> handle_question_new db lesson request respond
 						_ -> next request respond
 				["question", question'] ->
 					case readMaybe (Data.Text.unpack question') of
 						Just question -> handle_question db question request respond
+						_ -> next request respond
+				["answer-new", question'] ->
+					case readMaybe (Data.Text.unpack question') of
+						Just question -> handle_answer_new db question request respond
+						_ -> next request respond
+				["answer", answer'] ->
+					case readMaybe (Data.Text.unpack answer') of
+						Just answer -> handle_answer db answer request respond
 						_ -> next request respond
 				_ -> next request respond
 		_ -> HTTP.respond_403 request respond
