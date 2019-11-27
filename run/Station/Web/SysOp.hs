@@ -260,7 +260,48 @@ handle_lessons db course request respond
 		HTTP.respond_405 request respond
 
 handle_lesson :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
-handle_lesson _db _identifier request respond
+handle_lesson db identifier request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
+		DB.Lesson.get identifier db >>= \case
+			[lesson] ->
+				do
+					HTTP.respond_XML
+						(XML.xslt
+							(path_prefix <> "lesson.xsl")
+							(XML.element "lesson" [] [
+								XML.element "identifier" [] [XML.text (show identifier)],
+								XML.element "number" [] [XML.text (show (DB.Lesson.number lesson))],
+								XML.element "course" [] [XML.text (show (DB.Lesson.course lesson))],
+								XML.element "title" [] [XML.text (DB.Lesson.title lesson)],
+								XML.element "content" [] [XML.text (DB.Lesson.content lesson)]]))
+						request
+						respond
+			_ -> HTTP.respond_400 "Incorrect identifier" request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case map (flip lookup parameters) ["course", "number", "title", "content", "delete"] of
+				[Just course, _, _, _, Just _] ->
+					do
+						_ <- DB.Lesson.delete identifier db
+						HTTP.respond_303 ("../course/" <> course) request respond
+				[Just course', Just number', Just title, Just content, Nothing] ->
+					case (readMaybe (BS.U8.toString course'), readMaybe (BS.U8.toString number')) of
+						(Just course, Just number) ->
+							let
+								new =
+									DB.Lesson.Record{
+										DB.Lesson.identifier = identifier,
+										DB.Lesson.course = course,
+										DB.Lesson.number = number,
+										DB.Lesson.title = BS.U8.toString title,
+										DB.Lesson.content = BS.U8.toString content}
+								in
+									DB.Lesson.set new db >>= \case
+										True -> HTTP.respond_303 "" request respond
+										False -> HTTP.respond_404 request respond
+						_ -> HTTP.respond_400 "Incorrect course or number" request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 

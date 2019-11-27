@@ -11,15 +11,14 @@
 		(function (form) {
 			var checkbox = form.querySelector('input[type="checkbox"][name="delete"]');
 			var textboxes = form.querySelectorAll('input[type="text"], textarea');
+			function update() {
+				for (var j=0; j<textboxes.length; ++j)
+					if (!textboxes.item(j).readOnly)
+						textboxes.item(j).disabled = checkbox.checked;
+			}
 			if (checkbox !== null) {
-				checkbox.addEventListener(
-					'input',
-					function () {
-						for (var j=0; j<textboxes.length; ++j)
-							if (!textboxes.item(j).readOnly)
-								textboxes.item(j).disabled = this.checked;
-					}
-				)
+				checkbox.addEventListener('input', update);
+				return update();
 			}
 		})(forms.item(i));
 }))
