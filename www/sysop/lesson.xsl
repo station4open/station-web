@@ -63,11 +63,12 @@
 			</section>
 			<section>
 				<h1>Modify question</h1>
-				<ul>
-					<xsl:for-each select='questions/question'>
-						<li><xsl:value-of select='text'/></li>
-					</xsl:for-each>
-				</ul>
+				<xsl:for-each select='questions/question'>
+					<p>
+						[<a><xsl:attribute name='href'>../question/<xsl:value-of select='identifier'/></xsl:attribute>Edit</a>]
+						<xsl:value-of select='text'/>
+					</p>
+				</xsl:for-each>
 			</section>
 		</body>
 	</html>
