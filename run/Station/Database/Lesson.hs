@@ -4,11 +4,11 @@ module Station.Database.Lesson (
 	get, list, delete, add, set
 ) where
 
-import Prelude (succ, fromIntegral)
+import Prelude (succ)
 import Data.Bool (Bool)
 import Data.Eq ((==))
 import Data.Maybe (Maybe (Nothing, Just))
-import Data.Int (Int8, Int32)
+import Data.Int (Int32)
 import Data.String (String)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (return, (>>=))
@@ -50,7 +50,7 @@ get lesson_identifier db =
 		"SELECT \"IDENTIFIER\",\"COURSE\",\"NUMBER\",\"TITLE\",\"CONTENT\" FROM \"LESSON\" WHERE \"IDENTIFIER\"=?"
 		(DB.Only lesson_identifier)
 
-list :: DB.Course.Identifier -> DB.Connection -> IO [(DB.Course.Identifier, Number, String)]
+list :: DB.Course.Identifier -> DB.Connection -> IO [(Identifier, Number, String)]
 list course_identifier db =
 	DB.query
 		db

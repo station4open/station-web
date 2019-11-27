@@ -24,6 +24,7 @@ executable station
     Station.Database.Subject
     Station.Database.Course
     Station.Database.Lesson
+    Station.Database.Question
     Station.HTTP
     Station.Web
     Station.Web.Session

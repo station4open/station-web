@@ -48,6 +48,27 @@
 					<button type='submit'>Modify</button>
 				</form>
 			</section>
+			<section>
+				<h1>Create question</h1>
+				<form method='POST'>
+					<xsl:attribute name='action'>../questions/<xsl:value-of select='identifier'/></xsl:attribute>
+					<label>
+						Question
+						<div class='flex'>
+							<textarea name='text'/>
+						</div>
+					</label>
+					<button type='submit'>Create</button>
+				</form>
+			</section>
+			<section>
+				<h1>Modify question</h1>
+				<ul>
+					<xsl:for-each select='questions/question'>
+						<li><xsl:value-of select='text'/></li>
+					</xsl:for-each>
+				</ul>
+			</section>
 		</body>
 	</html>
 </xsl:template>

@@ -27,6 +27,7 @@ import qualified Station.Database.User as DB.User
 import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.Database.Lesson as DB.Lesson
+import qualified Station.Database.Question as DB.Question
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Session as Session
 
@@ -248,8 +249,8 @@ handle_lessons db course request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-			case map (flip lookup parameters) ["title", "content"] of
-				[Just title, Just content] ->
+			case (lookup "title" parameters, lookup "content" parameters) of
+				(Just title, Just content) ->
 					DB.Lesson.add (course, BS.U8.toString title, BS.U8.toString content) db >>= \case
 						Nothing ->
 							HTTP.respond_404 request respond
@@ -265,6 +266,7 @@ handle_lesson db identifier request respond
 		DB.Lesson.get identifier db >>= \case
 			[lesson] ->
 				do
+					questions <- DB.Question.list identifier db
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "lesson.xsl")
@@ -273,7 +275,14 @@ handle_lesson db identifier request respond
 								XML.element "number" [] [XML.text (show (DB.Lesson.number lesson))],
 								XML.element "course" [] [XML.text (show (DB.Lesson.course lesson))],
 								XML.element "title" [] [XML.text (DB.Lesson.title lesson)],
-								XML.element "content" [] [XML.text (DB.Lesson.content lesson)]]))
+								XML.element "content" [] [XML.text (DB.Lesson.content lesson)],
+								XML.element "questions" []
+									(map
+										(\ question ->
+											XML.element "question" [] [
+												XML.element "identifier" [] [XML.text (show (DB.Question.identifier question))],
+												XML.element "text" [] [XML.text (DB.Question.text question)]])
+										questions)]))
 						request
 						respond
 			_ -> HTTP.respond_400 "Incorrect identifier" request respond
@@ -305,6 +314,22 @@ handle_lesson db identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
+handle_questions :: DB.Type -> DB.Subject.Identifier -> Wai.Application
+handle_questions db lesson request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case lookup "text" parameters of
+				Just text ->
+					DB.Question.add (lesson, BS.U8.toString text) db >>= \case
+						Nothing ->
+							HTTP.respond_404 request respond
+						Just _identifier ->
+							HTTP.respond_303 ("../lesson/" <> BS.U8.fromString (show lesson)) request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
 handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
 	case session of
@@ -331,6 +356,10 @@ handle session path next request respond =
 				["lesson", lesson'] ->
 					case readMaybe (Data.Text.unpack lesson') of
 						Just lesson -> handle_lesson db lesson request respond
+						_ -> next request respond
+				["questions", lesson'] ->
+					case readMaybe (Data.Text.unpack lesson') of
+						Just lesson -> handle_questions db lesson request respond
 						_ -> next request respond
 				_ -> next request respond
 		_ -> HTTP.respond_403 request respond
