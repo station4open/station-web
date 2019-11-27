@@ -62,6 +62,7 @@ auth_check user' =
 				"bin" : "logout" : [] -> return False
 				"public" : _ : _ -> return False
 				"home.xhtml" : [] -> return False
+				"favicon.ico" : [] -> return False
 				_ -> return True
 		check :: HttpAuth.CheckCreds
 		check _ password =
