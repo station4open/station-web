@@ -11,7 +11,7 @@
 		<head>
 			<title>SysOp: Course</title>
 			<link rel="stylesheet" type="text/css" href="../base.css"/>
-			<script type='application/ecmascript' src='../../../delete_disable.js' async=''/>
+			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
@@ -48,7 +48,7 @@
 			<section>
 				<h1>Create lesson</h1>
 				<form method='POST'>
-					<xsl:attribute name='action'>../lesson-new/<xsl:value-of select='identifier'/></xsl:attribute>
+					<xsl:attribute name='action'>../lesson/new/<xsl:value-of select='identifier'/></xsl:attribute>
 					<label>
 						Title
 						<div class='flex'>

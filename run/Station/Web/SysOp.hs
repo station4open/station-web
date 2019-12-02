@@ -185,7 +185,7 @@ handle_course_new db subject request respond
 						Nothing ->
 							HTTP.respond_404 request respond
 						Just identifier ->
-							HTTP.respond_303 ("../course/" <> BS.U8.fromString (show identifier)) request respond
+							HTTP.respond_303 ("../" <> BS.U8.fromString (show identifier)) request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -254,7 +254,7 @@ handle_lesson_new db course request respond
 						Nothing ->
 							HTTP.respond_404 request respond
 						Just identifier ->
-							HTTP.respond_303 ("../lesson/" <> BS.U8.fromString (show identifier)) request respond
+							HTTP.respond_303 ("../" <> BS.U8.fromString (show identifier)) request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -324,7 +324,7 @@ handle_question_new db lesson request respond
 						Nothing ->
 							HTTP.respond_404 request respond
 						Just identifier ->
-							HTTP.respond_303 ("../question/" <> BS.U8.fromString (show identifier)) request respond
+							HTTP.respond_303 ("../" <> BS.U8.fromString (show identifier)) request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -391,7 +391,7 @@ handle_answer_new db question request respond
 						Nothing ->
 							HTTP.respond_404 request respond
 						Just _ ->
-							HTTP.respond_303 ("../question/" <> BS.U8.fromString (show question)) request respond
+							HTTP.respond_303 ("../../question/" <> BS.U8.fromString (show question)) request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -436,7 +436,7 @@ handle session path next request respond =
 					case readMaybe (Data.Text.unpack subject') of
 						Just subject -> handle_subject db subject request respond
 						_ -> next request respond
-				["course-new", subject'] ->
+				["course", "new", subject'] ->
 					case readMaybe (Data.Text.unpack subject') of
 						Just subject -> handle_course_new db subject request respond
 						_ -> next request respond
@@ -444,7 +444,7 @@ handle session path next request respond =
 					case readMaybe (Data.Text.unpack course') of
 						Just course -> handle_course db course request respond
 						_ -> next request respond
-				["lesson-new", course'] ->
+				["lesson", "new", course'] ->
 					case readMaybe (Data.Text.unpack course') of
 						Just course -> handle_lesson_new db course request respond
 						_ -> next request respond
@@ -452,7 +452,7 @@ handle session path next request respond =
 					case readMaybe (Data.Text.unpack lesson') of
 						Just lesson -> handle_lesson db lesson request respond
 						_ -> next request respond
-				["question-new", lesson'] ->
+				["question", "new", lesson'] ->
 					case readMaybe (Data.Text.unpack lesson') of
 						Just lesson -> handle_question_new db lesson request respond
 						_ -> next request respond
@@ -460,7 +460,7 @@ handle session path next request respond =
 					case readMaybe (Data.Text.unpack question') of
 						Just question -> handle_question db question request respond
 						_ -> next request respond
-				["answer-new", question'] ->
+				["answer", "new", question'] ->
 					case readMaybe (Data.Text.unpack question') of
 						Just question -> handle_answer_new db question request respond
 						_ -> next request respond

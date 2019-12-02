@@ -11,7 +11,7 @@
 		<head>
 			<title>SysOp: Lesson</title>
 			<link rel="stylesheet" type="text/css" href="../base.css"/>
-			<script type='application/ecmascript' src='../../../delete_disable.js' async=''/>
+			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
@@ -66,7 +66,7 @@
 					</form>
 				</xsl:for-each>
 				<form method='POST'>
-					<xsl:attribute name='action'>../answer-new/<xsl:value-of select='identifier'/></xsl:attribute>
+					<xsl:attribute name='action'>../answer/new/<xsl:value-of select='identifier'/></xsl:attribute>
 					<input type='hidden' name='question'>
 						<xsl:attribute name='value'><xsl:value-of select='identifier'/></xsl:attribute>
 					</input>

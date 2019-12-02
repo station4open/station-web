@@ -11,7 +11,7 @@
 		<head>
 			<title>SysOp: Lesson</title>
 			<link rel="stylesheet" type="text/css" href="../base.css"/>
-			<script type='application/ecmascript' src='../../../delete_disable.js' async=''/>
+			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
@@ -51,7 +51,7 @@
 			<section>
 				<h1>Create question</h1>
 				<form method='POST'>
-					<xsl:attribute name='action'>../question-new/<xsl:value-of select='identifier'/></xsl:attribute>
+					<xsl:attribute name='action'>../question/new/<xsl:value-of select='identifier'/></xsl:attribute>
 					<label>
 						Question
 						<div class='flex'>
