@@ -31,6 +31,7 @@ executable station
     Station.Web.Session
     Station.Web.Bin
     Station.Web.SysOp
+    Station.Web.Learn
   build-depends:
     base,
     bytestring,

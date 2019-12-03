@@ -25,6 +25,16 @@
 					this site.
 				</p>
 			</xsl:if>
+			<h1>Subjects</h1>
+			<xsl:for-each select='subjects/subject'>
+				<h2>
+					<a>
+						<xsl:attribute name='href'>learn/subject/<xsl:value-of select='identifier'/></xsl:attribute>
+						<xsl:value-of select='title'/>
+					</a>
+				</h2>
+				<p><xsl:value-of select='description'/></p>
+			</xsl:for-each>
 		</body>
 	</html>
 </xsl:template>

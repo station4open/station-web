@@ -6,7 +6,7 @@ import Data.Eq ((==))
 import Data.Ord ((>))
 import Data.Maybe (Maybe (Just))
 import Data.Tuple (fst)
-import Data.List (lookup)
+import Data.List (map, lookup)
 import Data.Functor ((<$>))
 import Control.Monad ((>>=))
 import Text.Show (show)
@@ -20,10 +20,12 @@ import qualified Station.Constant as Constant
 import qualified Station.XML as XML
 import qualified Station.Database as DB
 import qualified Station.Database.User as DB.User
+import qualified Station.Database.Subject as DB.Subject
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Session as Session
 import qualified Station.Web.Bin as Web.Bin
 import qualified Station.Web.SysOp as Web.SysOp
+import qualified Station.Web.Learn as Web.Learn
 
 handle_account :: DB.Type -> Wai.Application
 handle_account db request respond
@@ -59,10 +61,23 @@ handle_home db request respond
 				let user_name = BS.U8.toString user_name' in
 					DB.User.get user_name db >>= \case
 						[user] ->
-							let
-								xml = XML.element "home" [("name", user_name), ("role", show (DB.User.role user))] []
-								body = XML.xslt "/home.xsl" xml
-								in HTTP.respond_XML body request respond
+							do
+								subjects <- DB.Subject.list db
+								let
+									xml_subject subject =
+										XML.element "subject" [] [
+											XML.element "identifier" [] [XML.text (show (DB.Subject.identifier subject))],
+											XML.element "title" [] [XML.text (DB.Subject.title subject)],
+											XML.element "description" [] [XML.text (DB.Subject.description subject)]]
+									xml =
+										XML.element
+											"home"
+											[
+												("name", user_name),
+												("role", show (DB.User.role user))]
+											[
+												XML.element "subjects" [] (map xml_subject subjects)]
+								HTTP.respond_XML (XML.xslt "/home.xsl" xml) request respond
 						_ -> HTTP.respond_403 request respond
 			_ -> HTTP.respond_404 request respond
 	| otherwise =
@@ -75,4 +90,5 @@ handle session next request respond =
 		"sysop" : path -> Web.SysOp.handle session path next request respond
 		["home"] -> handle_home (Session.database session) request respond
 		["account"] -> handle_account (Session.database session) request respond
+		"learn" : path -> Web.Learn.handle session path next request respond
 		_ -> next request respond
