@@ -14,6 +14,8 @@ import qualified Network.Wai as Wai
 import qualified Station.XML as XML
 import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
+import qualified Station.Database.Lesson as DB.Lesson
+import qualified Station.Database.Question as DB.Question
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Session as Session
 
@@ -45,11 +47,71 @@ handle_subject session identifier request respond =
 					respond
 		_ -> HTTP.respond_404 request respond
 
+handle_course :: Session.Type -> DB.Course.Identifier -> Wai.Application
+handle_course session identifier request respond =
+	DB.Course.get identifier (Session.database session) >>= \case
+		[course] ->
+			do
+				lessons <- DB.Lesson.list identifier (Session.database session)
+				HTTP.respond_XML
+					(XML.xslt
+						(path_prefix <> "course.xsl")
+						(XML.element "course" [] [
+							XML.element "identifier" [] [XML.text (show identifier)],
+							XML.element "subject" [] [XML.text (show (DB.Course.subject course))],
+							XML.element "title" [] [XML.text (DB.Course.title course)],
+							XML.element "description" [] [XML.text (DB.Course.description course)],
+							XML.element "lessons" []
+								(map
+									(\ (lesson_identifier, lesson_number, lesson_title) ->
+										XML.element "lesson" [] [
+											XML.element "identifier" [] [XML.text (show lesson_identifier)],
+											XML.element "number" [] [XML.text (show lesson_number)],
+											XML.element "title" [] [XML.text lesson_title]])
+									lessons)]))
+					request
+					respond
+		_ -> HTTP.respond_404 request respond
+
+handle_lesson :: Session.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_lesson session identifier request respond =
+	DB.Lesson.get identifier (Session.database session) >>= \case
+		[lesson] ->
+			do
+				questions <- DB.Question.list identifier (Session.database session)
+				HTTP.respond_XML
+					(XML.xslt
+						(path_prefix <> "lesson.xsl")
+						(XML.element "lesson" [] [
+							XML.element "identifier" [] [XML.text (show identifier)],
+							XML.element "course" [] [XML.text (show (DB.Lesson.course lesson))],
+							XML.element "number" [] [XML.text (show (DB.Lesson.number lesson))],
+							XML.element "title" [] [XML.text (DB.Lesson.title lesson)],
+							XML.element "content" [] [XML.text (DB.Lesson.content lesson)],
+							XML.element "questions" []
+								(map
+									(\ question ->
+										XML.element "question" [] [
+											XML.element "identifier" [] [XML.text (show (DB.Question.identifier question))],
+											XML.element "text" [] [XML.text (show (DB.Question.text question))]])
+									questions)]))
+					request
+					respond
+		_ -> HTTP.respond_404 request respond
+
 handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
 	case path of
 		["subject", subject'] ->
 			case readMaybe (Data.Text.unpack subject') of
 				Just subject -> handle_subject session subject request respond
+				_ -> HTTP.respond_404 request respond
+		["course", course'] ->
+			case readMaybe (Data.Text.unpack course') of
+				Just course -> handle_course session course request respond
+				_ -> HTTP.respond_404 request respond
+		["lesson", lesson'] ->
+			case readMaybe (Data.Text.unpack lesson') of
+				Just lesson -> handle_lesson session lesson request respond
 				_ -> HTTP.respond_404 request respond
 		_ -> next request respond
