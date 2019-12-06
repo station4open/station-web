@@ -15,12 +15,20 @@
 			<xsl:call-template name='menubar'/>
 			<h1><xsl:value-of select='number'/>. <xsl:value-of select='title'/></h1>
 			<p><xsl:value-of select='content'/></p>
-			<h1>Question</h1>
-			<xsl:for-each select='questions/question'>
-				<ul>
+			<h1>Questions</h1>
+			<ul>
+				<xsl:for-each select='questions/question'>
 					<li><xsl:value-of select='text'/></li>
-				</ul>
-			</xsl:for-each>
+					<ul>
+						<xsl:for-each select='answers/answer'>
+							<li>
+								<xsl:value-of select='text'/>
+								(<xsl:value-of select='mark'/> point<xsl:if test='mark!=1'>s</xsl:if>)
+							</li>
+						</xsl:for-each>
+					</ul>
+				</xsl:for-each>
+			</ul>
 		</body>
 	</html>
 </xsl:template>

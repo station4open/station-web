@@ -3,9 +3,10 @@ module Station.Web.Learn (handle) where
 import Prelude ()
 import Data.Maybe (Maybe (Just))
 import Data.Monoid ((<>))
+import Data.Functor ((<$>))
 import Data.List (map)
 import Data.String (IsString)
-import Control.Monad ((>>=))
+import Control.Monad ((>>=), (=<<), mapM)
 import Text.Show (show)
 import Text.Read (readMaybe)
 import qualified Data.Text (Text, unpack)
@@ -16,6 +17,7 @@ import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.Database.Lesson as DB.Lesson
 import qualified Station.Database.Question as DB.Question
+import qualified Station.Database.Answer as DB.Answer
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Session as Session
 
@@ -78,7 +80,12 @@ handle_lesson session identifier request respond =
 	DB.Lesson.get identifier (Session.database session) >>= \case
 		[lesson] ->
 			do
-				questions <- DB.Question.list identifier (Session.database session)
+				let db = Session.database session
+				questions_and_anwsers <-
+					mapM
+						(\ question ->
+							(\ answers -> (question, answers)) <$> DB.Answer.list (DB.Question.identifier question) db)
+						=<< DB.Question.list identifier db
 				HTTP.respond_XML
 					(XML.xslt
 						(path_prefix <> "lesson.xsl")
@@ -90,11 +97,19 @@ handle_lesson session identifier request respond =
 							XML.element "content" [] [XML.text (DB.Lesson.content lesson)],
 							XML.element "questions" []
 								(map
-									(\ question ->
+									(\ (question, answers) ->
 										XML.element "question" [] [
 											XML.element "identifier" [] [XML.text (show (DB.Question.identifier question))],
-											XML.element "text" [] [XML.text (show (DB.Question.text question))]])
-									questions)]))
+											XML.element "text" [] [XML.text (show (DB.Question.text question))],
+											XML.element "answers" []
+												(map
+													(\ answer ->
+														XML.element "answer" [] [
+															XML.element "identifier" [] [XML.text (show (DB.Answer.identifier answer))],
+															XML.element "text" [] [XML.text (DB.Answer.text answer)],
+															XML.element "mark" [] [XML.text (show (DB.Answer.mark answer))]])
+													answers)])
+									questions_and_anwsers)]))
 					request
 					respond
 		_ -> HTTP.respond_404 request respond
