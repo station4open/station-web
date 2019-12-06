@@ -74,7 +74,8 @@ handle_home db request respond
 											"home"
 											[
 												("name", user_name),
-												("role", show (DB.User.role user))]
+												("role", show (DB.User.role user)),
+												("mark", show (DB.User.mark user))]
 											[
 												XML.element "subjects" [] (map xml_subject subjects)]
 								HTTP.respond_XML (XML.xslt "/home.xsl" xml) request respond

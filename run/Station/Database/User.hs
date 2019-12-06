@@ -1,5 +1,5 @@
 module Station.Database.User (
-	Type (Record, name, password, role),
+	Type (Record, name, password, role, mark),
 	get, list, check, delete, add, set, set_password
 ) where
 
@@ -20,25 +20,36 @@ import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
 
+import qualified Station.Database
 import qualified Station.Constant as Constant
 
 data Type =
 	Record{
 		name :: String,
 		password :: String,
-		role :: Constant.Role}
+		role :: Constant.Role,
+		mark :: Station.Database.Mark}
 
 instance DB.ToRow Type where
-	toRow user = [DB.toField (name user), DB.toField (password user), DB.toField (fromEnum (role user))]
+	toRow user =
+		[
+			DB.toField (name user),
+			DB.toField (password user),
+			DB.toField (fromEnum (role user)),
+			DB.toField (mark user)]
 
 instance DB.FromRow Type where
-	fromRow = Record <$> DB.field <*> DB.field <*> (toEnum <$> DB.field)
+	fromRow = Record <$> DB.field <*> DB.field <*> (toEnum <$> DB.field) <*> DB.field
 
 get :: String -> DB.Connection -> IO [Type]
-get user_name db = DB.query db "SELECT \"NAME\",\"PASSWORD\",\"ROLE\" FROM \"USER\" WHERE \"NAME\"=?" (DB.Only user_name)
+get user_name db =
+	DB.query
+		db
+		"SELECT \"NAME\",\"PASSWORD\",\"ROLE\",\"MARK\" FROM \"USER\" WHERE \"NAME\"=?"
+		(DB.Only user_name)
 
 list :: DB.Connection -> IO [Type]
-list db = DB.query_ db "SELECT \"NAME\",\"PASSWORD\",\"ROLE\" FROM \"USER\""
+list db = DB.query_ db "SELECT \"NAME\",\"PASSWORD\",\"ROLE\",\"MARK\" FROM \"USER\""
 
 check :: BS.ByteString -> BS.ByteString -> DB.Connection -> IO Bool
 check user word db =
@@ -63,7 +74,7 @@ add user db =
 		n <-
 			DB.execute
 				db
-				"INSERT INTO \"USER\" (\"NAME\",\"PASSWORD\",\"ROLE\") VALUES (?,?,?)"
+				"INSERT INTO \"USER\" (\"NAME\",\"PASSWORD\",\"ROLE\",\"MARK\") VALUES (?,?,?,?)"
 				(name user, hash, fromEnum (role user))
 		return (n == 1)
 

@@ -1,5 +1,5 @@
 module Station.Database.Answer (
-	Identifier, Mark,
+	Identifier,
 	Type (Record, identifier, question, text, mark),
 	get, list, delete, add, set
 ) where
@@ -17,17 +17,17 @@ import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
 
+import qualified Station.Database
 import qualified Station.Database.Question as DB.Question
 
 type Identifier = Int32
-type Mark = Int32
 
 data Type =
 	Record{
 		identifier :: Identifier,
 		question :: DB.Question.Identifier,
 		text :: String,
-		mark :: Mark}
+		mark :: Station.Database.Mark}
 
 instance DB.ToRow Type where
 	toRow answer =
@@ -63,7 +63,7 @@ delete answer_identifier db =
 				"DELETE FROM \"ANSWER\" WHERE \"IDENTIFIER\"=?"
 				(DB.Only answer_identifier)
 
-add :: (DB.Question.Identifier, String, Mark) -> DB.Connection -> IO (Maybe Identifier)
+add :: (DB.Question.Identifier, String, Int32) -> DB.Connection -> IO (Maybe Identifier)
 add (answer_question, answer_text, answer_mark) db =
 	(\case
 		[DB.Only result] -> (Just result)

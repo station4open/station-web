@@ -48,6 +48,12 @@
 									<xsl:value-of select='.'/>
 								</xsl:attribute>
 							</input>
+							<label>
+								Mark
+								<input type='text' name='mark' readonly=''>
+									<xsl:attribute name='value'><xsl:value-of select='@mark'/></xsl:attribute>
+								</input>
+							</label>
 							<br/>
 							<label>
 								Name

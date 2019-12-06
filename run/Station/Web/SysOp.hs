@@ -40,44 +40,54 @@ handle_account db request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		do
 			users <- DB.User.list db
-			let
-				xml_user user = XML.element "user" [("role", show (DB.User.role user))] [XML.text (DB.User.name user)]
-				xml_account = XML.element "account" [] (map xml_user users)
-				body = XML.xslt (path_prefix <> "account.xsl") xml_account
-			HTTP.respond_XML body request respond
+			HTTP.respond_XML
+				(XML.xslt
+					(path_prefix <> "account.xsl")
+					(XML.element "account" []
+						(map
+							(\ user ->
+								XML.element
+									"user"
+									[("role", show (DB.User.role user)), ("mark", show (DB.User.mark user))]
+									[XML.text (DB.User.name user)])
+							users)))
+				request
+				respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-			case map (flip lookup parameters) ["user", "name", "role", "password", "delete"] of
-				[Nothing, Just name, Just role', Just password, Nothing] ->
-					case readMaybe (BS.U8.toString role') of
-						Just role ->
+			case map (flip lookup parameters) ["user", "name", "role", "password", "mark", "delete"] of
+				[Nothing, Just name, Just role', Just password, Just mark', Nothing] ->
+					case (readMaybe (BS.U8.toString role'), readMaybe (BS.U8.toString mark')) of
+						(Just role, Just mark) ->
 							let new =
 								DB.User.Record{
 									DB.User.name = BS.U8.toString name,
 									DB.User.role = role,
-									DB.User.password = BS.U8.toString password}
+									DB.User.password = BS.U8.toString password,
+									DB.User.mark = mark}
 								in redirect_result =<< DB.User.add new db
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
 								BS.C8.putStrLn role'
 								HTTP.respond_404 request respond
-				[Just user, Just name, Just role', Just password, Nothing] ->
-					case readMaybe (BS.U8.toString role') of
-						Just role ->
+				[Just user, Just name, Just role', Just password, Just mark', Nothing] ->
+					case (readMaybe (BS.U8.toString role'), readMaybe (BS.U8.toString mark')) of
+						(Just role, Just mark) ->
 							let new =
 								DB.User.Record{
 									DB.User.name = BS.U8.toString name,
 									DB.User.role = role,
-									DB.User.password = BS.U8.toString password}
+									DB.User.password = BS.U8.toString password,
+									DB.User.mark = mark}
 								in redirect_result =<< DB.User.set (BS.U8.toString user) new db
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
 								BS.C8.putStrLn role'
 								HTTP.respond_404 request respond
-				[Just user, _, _, _, Just _] ->
+				[Just user, _, _, _, _, Just _] ->
 					redirect_result =<< DB.User.delete (BS.U8.toString user) db
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
