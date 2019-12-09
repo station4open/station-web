@@ -8,18 +8,34 @@ import Prelude ()
 import Data.Bool (Bool)
 import Data.Eq ((==))
 import Data.Maybe (Maybe (Nothing, Just))
+import Data.List (map)
 import Data.Int (Int32)
 import Data.String (String)
 import Control.Applicative ((<$>), (<*>))
+import Text.Show (Show, show)
+import Text.Read (Read, readsPrec)
 import System.IO (IO)
 import qualified Database.PostgreSQL.Simple as DB
 import qualified Database.PostgreSQL.Simple.ToField as DB
+import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
 
 import qualified Station.Database.Lesson as DB.Lesson
 
-type Identifier = Int32
+newtype Identifier = Identifier Int32
+
+instance Show Identifier where
+	show (Identifier i) = show i
+
+instance Read Identifier where
+	readsPrec i s = map (\ (x, r) -> (Identifier x, r)) (readsPrec i s)
+
+instance DB.ToField Identifier where
+	toField (Identifier i) = DB.toField i
+
+instance DB.FromField Identifier where
+	fromField f x = Identifier <$> DB.fromField f x
 
 data Type =
 	Record{
@@ -60,8 +76,8 @@ delete question_identifier db =
 				"DELETE FROM \"QUESTION\" WHERE \"IDENTIFIER\"=?"
 				(DB.Only question_identifier)
 
-add :: (DB.Lesson.Identifier, String) -> DB.Connection -> IO (Maybe Identifier)
-add (question_lesson, question_text) db =
+add :: DB.Lesson.Identifier -> String -> DB.Connection -> IO (Maybe Identifier)
+add question_lesson question_text db =
 	(\case
 		[DB.Only result] -> (Just result)
 		_ -> Nothing)

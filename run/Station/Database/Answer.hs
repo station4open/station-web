@@ -8,19 +8,35 @@ import Prelude ()
 import Data.Bool (Bool)
 import Data.Eq ((==))
 import Data.Maybe (Maybe (Nothing, Just))
+import Data.List (map)
 import Data.Int (Int32)
 import Data.String (String)
 import Control.Applicative ((<$>), (<*>))
+import Text.Show (Show, show)
+import Text.Read (Read, readsPrec)
 import System.IO (IO)
 import qualified Database.PostgreSQL.Simple as DB
 import qualified Database.PostgreSQL.Simple.ToField as DB
+import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
 
 import qualified Station.Database
 import qualified Station.Database.Question as DB.Question
 
-type Identifier = Int32
+newtype Identifier = Identifier Int32
+
+instance Show Identifier where
+	show (Identifier i) = show i
+
+instance Read Identifier where
+	readsPrec i s = map (\ (x, r) -> (Identifier x, r)) (readsPrec i s)
+
+instance DB.ToField Identifier where
+	toField (Identifier i) = DB.toField i
+
+instance DB.FromField Identifier where
+	fromField f x = Identifier <$> DB.fromField f x
 
 data Type =
 	Record{
@@ -63,8 +79,8 @@ delete answer_identifier db =
 				"DELETE FROM \"ANSWER\" WHERE \"IDENTIFIER\"=?"
 				(DB.Only answer_identifier)
 
-add :: (DB.Question.Identifier, String, Int32) -> DB.Connection -> IO (Maybe Identifier)
-add (answer_question, answer_text, answer_mark) db =
+add :: DB.Question.Identifier -> String -> Int32 -> DB.Connection -> IO (Maybe Identifier)
+add answer_question answer_text answer_mark db =
 	(\case
 		[DB.Only result] -> (Just result)
 		_ -> Nothing)

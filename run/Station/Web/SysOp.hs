@@ -123,7 +123,7 @@ handle_subjects db request respond
 					BS.U8.toString <$> lookup "description" parameters)
 				of
 					(Just title, Just description) ->
-						DB.Subject.add (title, description) db >>= \case
+						DB.Subject.add title description db >>= \case
 							Nothing ->
 								HTTP.respond_404 request respond
 							Just identifier ->
@@ -191,7 +191,7 @@ handle_course_new db subject request respond
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case map (flip lookup parameters) ["title", "description"] of
 				[Just title, Just description] ->
-					DB.Course.add (subject, BS.U8.toString title, BS.U8.toString description) db >>= \case
+					DB.Course.add subject (BS.U8.toString title) (BS.U8.toString description) db >>= \case
 						Nothing ->
 							HTTP.respond_404 request respond
 						Just identifier ->
@@ -260,7 +260,7 @@ handle_lesson_new db course request respond
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case (lookup "title" parameters, lookup "content" parameters) of
 				(Just title, Just content) ->
-					DB.Lesson.add (course, BS.U8.toString title, BS.U8.toString content) db >>= \case
+					DB.Lesson.add course (BS.U8.toString title) (BS.U8.toString content) db >>= \case
 						Nothing ->
 							HTTP.respond_404 request respond
 						Just identifier ->
@@ -330,7 +330,7 @@ handle_question_new db lesson request respond
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case lookup "text" parameters of
 				Just text ->
-					DB.Question.add (lesson, BS.U8.toString text) db >>= \case
+					DB.Question.add lesson (BS.U8.toString text) db >>= \case
 						Nothing ->
 							HTTP.respond_404 request respond
 						Just identifier ->
@@ -390,14 +390,14 @@ handle_question db identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_answer_new :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_answer_new :: DB.Type -> DB.Question.Identifier -> Wai.Application
 handle_answer_new db question request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case (lookup "text" parameters, (readMaybe . BS.U8.toString) =<< lookup "mark" parameters) of
 				(Just text, Just mark) ->
-					DB.Answer.add (question, BS.U8.toString text, mark) db >>= \case
+					DB.Answer.add question (BS.U8.toString text) mark db >>= \case
 						Nothing ->
 							HTTP.respond_404 request respond
 						Just _ ->

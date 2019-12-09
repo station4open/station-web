@@ -8,19 +8,36 @@ import Prelude (succ)
 import Data.Bool (Bool)
 import Data.Eq ((==))
 import Data.Maybe (Maybe (Nothing, Just))
+import Data.List (map)
 import Data.Int (Int32)
 import Data.String (String)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (return, (>>=))
+import Text.Show (Show, show)
+import Text.Read (Read, readsPrec)
 import System.IO (IO)
 import qualified Database.PostgreSQL.Simple as DB
 import qualified Database.PostgreSQL.Simple.ToField as DB
+import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
 
 import qualified Station.Database.Course as DB.Course
 
-type Identifier = Int32
+newtype Identifier = Identifier Int32
+
+instance Show Identifier where
+	show (Identifier i) = show i
+
+instance Read Identifier where
+	readsPrec i s = map (\ (x, r) -> (Identifier x, r)) (readsPrec i s)
+
+instance DB.ToField Identifier where
+	toField (Identifier i) = DB.toField i
+
+instance DB.FromField Identifier where
+	fromField f x = Identifier <$> DB.fromField f x
+
 type Number = Int32
 
 data Type =
@@ -66,8 +83,8 @@ delete lesson_identifier db =
 				"DELETE FROM \"LESSON\" WHERE \"IDENTIFIER\"=?"
 				(DB.Only lesson_identifier)
 
-add :: (DB.Course.Identifier, String, String) -> DB.Connection -> IO (Maybe Identifier)
-add (lesson_course, lesson_title, lesson_content) db =
+add :: DB.Course.Identifier -> String -> String -> DB.Connection -> IO (Maybe Identifier)
+add lesson_course lesson_title lesson_content db =
 	DB.query db "SELECT COUNT(*)::INTEGER FROM \"LESSON\" WHERE \"COURSE\"=?" (DB.Only lesson_course) >>= \case
 		[DB.Only n] ->
 			(\case

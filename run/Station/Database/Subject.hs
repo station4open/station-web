@@ -8,16 +8,32 @@ import Prelude ()
 import Data.Bool (Bool)
 import Data.Eq ((==))
 import Data.Maybe (Maybe (Nothing, Just))
+import Data.List (map)
 import Data.Int (Int32)
 import Data.String (String)
 import Control.Applicative ((<$>), (<*>))
 import System.IO (IO)
+import Text.Show (Show, show)
+import Text.Read (Read, readsPrec)
 import qualified Database.PostgreSQL.Simple as DB
 import qualified Database.PostgreSQL.Simple.ToField as DB
+import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
 
-type Identifier = Int32
+newtype Identifier = Identifier Int32
+
+instance Show Identifier where
+	show (Identifier i) = show i
+
+instance Read Identifier where
+	readsPrec i s = map (\ (x, r) -> (Identifier x, r)) (readsPrec i s)
+
+instance DB.ToField Identifier where
+	toField (Identifier i) = DB.toField i
+
+instance DB.FromField Identifier where
+	fromField f x = Identifier <$> DB.fromField f x
 
 data Type =
 	Record{
@@ -54,8 +70,8 @@ delete subject_identifier db =
 				"DELETE FROM \"SUBJECT\" WHERE \"IDENTIFIER\"=?"
 				(DB.Only subject_identifier)
 
-add :: (String, String) -> DB.Connection -> IO (Maybe Int32)
-add (subject_title, subject_description) db =
+add :: String -> String -> DB.Connection -> IO (Maybe Int32)
+add subject_title subject_description db =
 	(\case
 		[DB.Only result] -> (Just result)
 		_ -> Nothing)
