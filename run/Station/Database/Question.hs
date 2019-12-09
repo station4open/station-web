@@ -51,7 +51,11 @@ instance DB.ToRow Type where
 			DB.toField (text question)]
 
 instance DB.FromRow Type where
-	fromRow = Record <$> DB.field <*> DB.field <*> DB.field
+	fromRow =
+		Record
+			<$> DB.field
+			<*> DB.field
+			<*> DB.field
 
 get :: Identifier -> DB.Connection -> IO [Type]
 get question_identifier db =

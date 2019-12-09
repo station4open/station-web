@@ -54,7 +54,12 @@ instance DB.ToRow Type where
 			DB.toField (mark answer)]
 
 instance DB.FromRow Type where
-	fromRow = Record <$> DB.field <*> DB.field <*> DB.field <*> DB.field
+	fromRow =
+		Record
+			<$> DB.field
+			<*> DB.field
+			<*> DB.field
+			<*> DB.field
 
 get :: Identifier -> DB.Connection -> IO [Type]
 get answer_identifier db =
