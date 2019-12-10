@@ -323,6 +323,23 @@ handle_lesson db identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
+handle_lesson_exchange :: DB.Type -> DB.Course.Identifier -> Wai.Application
+handle_lesson_exchange db course request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case (lookup "0" parameters, lookup "1" parameters) of
+				(Just a', Just b') ->
+					case (readMaybe (BS.U8.toString a'), readMaybe (BS.U8.toString b')) of
+						(Just a, Just b) ->
+							DB.Lesson.exchange a b db >>= \case
+								True -> HTTP.respond_303 ("../../course/" <> BS.U8.fromString (show course)) request respond
+								False -> HTTP.respond_409 "Fail to re-numbering" request respond
+						_ -> HTTP.respond_400 "Incorrect identifiers" request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
 handle_question_new :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
 handle_question_new db lesson request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
@@ -461,6 +478,10 @@ handle session path next request respond =
 				["lesson", lesson'] ->
 					case readMaybe (Data.Text.unpack lesson') of
 						Just lesson -> handle_lesson db lesson request respond
+						_ -> next request respond
+				["lesson", "exchange", course'] ->
+					case readMaybe (Data.Text.unpack course') of
+						Just course -> handle_lesson_exchange db course request respond
 						_ -> next request respond
 				["question", "new", lesson'] ->
 					case readMaybe (Data.Text.unpack lesson') of

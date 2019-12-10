@@ -1,7 +1,7 @@
 module Station.Database.Lesson (
 	Identifier, Number,
 	Type (Record, identifier, course, number, title, content),
-	get, list, delete, add, set
+	get, list, delete, add, set, exchange
 ) where
 
 import Prelude (succ)
@@ -70,14 +70,19 @@ get :: Identifier -> DB.Connection -> IO [Type]
 get lesson_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"COURSE\",\"NUMBER\",\"TITLE\",\"CONTENT\" FROM \"LESSON\" WHERE \"IDENTIFIER\"=?"
+		"SELECT \"IDENTIFIER\",\"COURSE\",\"NUMBER\",\"TITLE\",\"CONTENT\" \
+			\FROM \"LESSON\" \
+			\WHERE \"IDENTIFIER\"=?"
 		(DB.Only lesson_identifier)
 
 list :: DB.Course.Identifier -> DB.Connection -> IO [(Identifier, Number, String)]
 list course_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"NUMBER\",\"TITLE\" FROM \"LESSON\" WHERE \"COURSE\"=? ORDER BY \"NUMBER\" ASC"
+		"SELECT \"IDENTIFIER\",\"NUMBER\",\"TITLE\" \
+			\FROM \"LESSON\" \
+			\WHERE \"COURSE\"=? \
+			\ORDER BY \"NUMBER\" ASC"
 		(DB.Only course_identifier)
 
 delete :: Identifier -> DB.Connection -> IO Bool
@@ -115,3 +120,17 @@ set lesson db =
 					\SET \"COURSE\"=?,\"NUMBER\"=?,\"TITLE\"=?,\"CONTENT\"=? \
 					\WHERE \"IDENTIFIER\"=?"
 				(course lesson, number lesson, title lesson, content lesson, identifier lesson)
+
+exchange :: Identifier -> Identifier -> DB.Connection -> IO Bool
+exchange lesson_1 lesson_2 db =
+	(2 ==)
+		<$>
+			DB.execute
+				db
+				"WITH \"L\" AS (SELECT * FROM \"LESSON\" WHERE \"IDENTIFIER\" IN (?,?)) \
+					\UPDATE \"LESSON\" \
+						\SET \"NUMBER\"=\"L2\".\"NUMBER\" \
+						\FROM \"L\" AS \"L1\", \"L\" AS \"L2\" \
+						\WHERE \"LESSON\".\"IDENTIFIER\"=\"L1\".\"IDENTIFIER\" \
+							\AND \"L1\".\"IDENTIFIER\"<>\"L2\".\"IDENTIFIER\""
+				(lesson_1, lesson_2)
