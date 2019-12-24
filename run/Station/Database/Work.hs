@@ -70,9 +70,9 @@ delete' user_name lesson_identifier db =
 										ON "QUESTION"."IDENTIFIER"="ANSWER"."QUESTION"
 									INNER JOIN "WORK"
 										ON "ANSWER"."IDENTIFIER"="WORK"."ANSWER"
-									WHERE "QUESTION"."LESSON"=?)
+									WHERE "QUESTION"."LESSON"=? AND "WORK"."USER"=?)
 						WHERE "NAME"=? |]
-				(lesson_identifier, user_name))
+				(lesson_identifier, user_name, user_name))
 		void
 			(DB.execute
 				db
