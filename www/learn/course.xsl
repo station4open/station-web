@@ -13,8 +13,12 @@
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
+			<a>
+				<xsl:attribute name='href'>../subject/<xsl:value-of select='subject'/></xsl:attribute>
+				Back to subject
+			</a>
 			<h1><xsl:value-of select='title'/></h1>
-			<p><xsl:value-of select='description'/></p>
+			<pre><xsl:value-of select='description'/></pre>
 			<h1>Lessons</h1>
 			<xsl:for-each select='lessons/lesson'>
 				<p>

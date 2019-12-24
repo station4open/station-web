@@ -13,22 +13,42 @@
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
+			<a>
+				<xsl:attribute name='href'>../course/<xsl:value-of select='course'/></xsl:attribute>
+				Back to course
+			</a>
 			<h1><xsl:value-of select='number'/>. <xsl:value-of select='title'/></h1>
-			<p><xsl:value-of select='content'/></p>
+			<pre><xsl:value-of select='content'/></pre>
 			<h1>Questions</h1>
-			<ul>
-				<xsl:for-each select='questions/question'>
-					<li><xsl:value-of select='text'/></li>
-					<ul>
-						<xsl:for-each select='answers/answer'>
-							<li>
-								<xsl:value-of select='text'/>
-								(<xsl:value-of select='mark'/> point<xsl:if test='mark!=1'>s</xsl:if>)
-							</li>
-						</xsl:for-each>
-					</ul>
-				</xsl:for-each>
-			</ul>
+			<form method='POST'>
+				<ul>
+					<xsl:for-each select='questions/question'>
+						<li>
+							<xsl:value-of select='text'/>
+							(<xsl:value-of select='mark'/> point<xsl:if test='mark!=1'>s</xsl:if>)
+							<ul>
+								<xsl:for-each select='answers/answer'>
+									<li>
+										<label>
+											<input type='checkbox'>
+												<xsl:attribute name='name'><xsl:value-of select='identifier'/></xsl:attribute>
+												<xsl:if test='@answered'>
+													<xsl:attribute name='checked'/>
+												</xsl:if>
+											</input>
+											<xsl:value-of select='text'/>
+											<xsl:if test='@answered'>
+												(<xsl:value-of select='@answered'/> point<xsl:if test='@answered!=1'>s</xsl:if>)
+											</xsl:if>
+										</label>
+									</li>
+								</xsl:for-each>
+							</ul>
+						</li>
+					</xsl:for-each>
+					<input type='submit' value='Submit'/>
+				</ul>
+			</form>
 		</body>
 	</html>
 </xsl:template>

@@ -1,23 +1,33 @@
 module Station.Web.Learn (handle) where
 
 import Prelude ()
-import Data.Maybe (Maybe (Just))
+import Data.Bool (otherwise)
+import Data.Eq ((==))
+import Data.Maybe (Maybe (Nothing, Just), catMaybes)
+import Data.Tuple (fst)
 import Data.Monoid ((<>))
+import Data.Function ((.))
 import Data.Functor ((<$>))
-import Data.List (map)
+import Data.List (map, sum)
 import Data.String (IsString)
-import Control.Monad ((>>=), (=<<), mapM)
+import Control.Monad ((>>=))
 import Text.Show (show)
 import Text.Read (readMaybe)
+import System.IO (print)
+import qualified Data.ByteString.UTF8 as BS.U8
 import qualified Data.Text (Text, unpack)
+import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
+import qualified Network.Wai.Parse as Wai.Parse
 
 import qualified Station.XML as XML
+import qualified Station.Database.User as DB.User
 import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.Database.Lesson as DB.Lesson
 import qualified Station.Database.Question as DB.Question
 import qualified Station.Database.Answer as DB.Answer
+import qualified Station.Database.Work as DB.Work
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Session as Session
 
@@ -76,21 +86,21 @@ handle_course session identifier request respond =
 		_ -> HTTP.respond_404 request respond
 
 handle_lesson :: Session.Type -> DB.Lesson.Identifier -> Wai.Application
-handle_lesson session identifier request respond =
-	DB.Lesson.get identifier (Session.database session) >>= \case
-		[lesson] ->
-			do
-				let db = Session.database session
-				questions_and_anwsers <-
-					mapM
-						(\ question ->
-							(\ answers -> (question, answers)) <$> DB.Answer.list (DB.Question.identifier question) db)
-						=<< DB.Question.list identifier db
+handle_lesson
+	Session.Record{
+		Session.database = database,
+		Session.user = Just DB.User.Record{DB.User.name = user_name}}
+	lesson_identifier
+	request
+	respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
+		DB.Work.get_lesson user_name lesson_identifier database >>= \case
+			[(lesson, questions)] ->
 				HTTP.respond_XML
 					(XML.xslt
 						(path_prefix <> "lesson.xsl")
 						(XML.element "lesson" [] [
-							XML.element "identifier" [] [XML.text (show identifier)],
+							XML.element "identifier" [] [XML.text (show lesson_identifier)],
 							XML.element "course" [] [XML.text (show (DB.Lesson.course lesson))],
 							XML.element "number" [] [XML.text (show (DB.Lesson.number lesson))],
 							XML.element "title" [] [XML.text (DB.Lesson.title lesson)],
@@ -100,19 +110,51 @@ handle_lesson session identifier request respond =
 									(\ (question, answers) ->
 										XML.element "question" [] [
 											XML.element "identifier" [] [XML.text (show (DB.Question.identifier question))],
-											XML.element "text" [] [XML.text (show (DB.Question.text question))],
+											XML.element "text" [] [XML.text (DB.Question.text question)],
+											XML.element "mark" [] [XML.text (show (sum (map (DB.Answer.mark . fst) answers)))],
 											XML.element "answers" []
 												(map
-													(\ answer ->
-														XML.element "answer" [] [
-															XML.element "identifier" [] [XML.text (show (DB.Answer.identifier answer))],
-															XML.element "text" [] [XML.text (DB.Answer.text answer)],
-															XML.element "mark" [] [XML.text (show (DB.Answer.mark answer))]])
+													(\ (answer, answered) ->
+														XML.element "answer"
+															(if answered
+																then [("answered", show (DB.Answer.mark answer))]
+																else [])
+															[
+																XML.element "identifier" [] [XML.text (show (DB.Answer.identifier answer))],
+																XML.element "text" [] [XML.text (DB.Answer.text answer)]])
 													answers)])
-									questions_and_anwsers)]))
+									questions)]))
 					request
 					respond
-		_ -> HTTP.respond_404 request respond
+			_ -> HTTP.respond_404 request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			print user_name
+			print lesson_identifier
+			print parameters
+			DB.Work.add user_name lesson_identifier (catMaybes (map (readMaybe . BS.U8.toString . fst) parameters)) database
+			HTTP.respond_303 "" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+handle_lesson _ _ request respond = HTTP.respond_403 request respond
+
+handle_answer :: Session.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_answer session identifier request respond =
+	case Session.user session of
+		Just user ->
+			DB.Lesson.get identifier (Session.database session) >>= \case
+				[lesson] ->
+					do
+						parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+						DB.Work.add
+							(DB.User.name user)
+							(DB.Lesson.identifier lesson)
+							(catMaybes (map (\ (k, _) -> readMaybe (BS.U8.toString k)) parameters))
+							(Session.database session)
+						HTTP.respond_404 request respond
+				_ -> HTTP.respond_404 request respond
+		Nothing -> HTTP.respond_403 request respond
 
 handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
@@ -128,5 +170,9 @@ handle session path next request respond =
 		["lesson", lesson'] ->
 			case readMaybe (Data.Text.unpack lesson') of
 				Just lesson -> handle_lesson session lesson request respond
+				_ -> HTTP.respond_404 request respond
+		["answer", lesson'] ->
+			case readMaybe (Data.Text.unpack lesson') of
+				Just lesson -> handle_answer session lesson request respond
 				_ -> HTTP.respond_404 request respond
 		_ -> next request respond

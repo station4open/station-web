@@ -14,7 +14,7 @@
 		<body>
 			<xsl:call-template name='menubar'/>
 			<h1><xsl:value-of select='title'/></h1>
-			<p><xsl:value-of select='description'/></p>
+			<pre><xsl:value-of select='description'/></pre>
 			<h1>Courses</h1>
 			<xsl:for-each select='courses/course'>
 				<h2>
