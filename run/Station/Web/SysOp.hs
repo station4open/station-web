@@ -30,27 +30,29 @@ import qualified Station.Database.Lesson as DB.Lesson
 import qualified Station.Database.Question as DB.Question
 import qualified Station.Database.Answer as DB.Answer
 import qualified Station.HTTP as HTTP
+import qualified Station.Web.Tool as Web.Tool
 import qualified Station.Web.Session as Session
 
 path_prefix :: IsString s => s
 path_prefix = "/sysop/"
 
-handle_account :: DB.Type -> Wai.Application
-handle_account db request respond
+handle_account :: Session.Type -> Wai.Application
+handle_account session request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		do
-			users <- DB.User.list db
+			users <- DB.User.list (Session.database session)
 			HTTP.respond_XML
 				(XML.xslt
 					(path_prefix <> "account.xsl")
 					(XML.element "account" []
-						(map
-							(\ user ->
-								XML.element
-									"user"
-									[("role", show (DB.User.role user)), ("mark", show (DB.User.mark user))]
-									[XML.text (DB.User.name user)])
-							users)))
+						(Web.Tool.user_XML (Session.user session) :
+							map
+								(\ user ->
+									XML.element
+										"user"
+										[("role", show (DB.User.role user)), ("mark", show (DB.User.mark user))]
+										[XML.text (DB.User.name user)])
+								users)))
 				request
 				respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
@@ -66,7 +68,7 @@ handle_account db request respond
 									DB.User.role = role,
 									DB.User.password = BS.U8.toString password,
 									DB.User.mark = mark}
-								in redirect_result =<< DB.User.add new db
+								in redirect_result =<< DB.User.add new (Session.database session)
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
@@ -81,14 +83,14 @@ handle_account db request respond
 									DB.User.role = role,
 									DB.User.password = BS.U8.toString password,
 									DB.User.mark = mark}
-								in redirect_result =<< DB.User.set (BS.U8.toString user) new db
+								in redirect_result =<< DB.User.set (BS.U8.toString user) new (Session.database session)
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
 								BS.C8.putStrLn role'
 								HTTP.respond_404 request respond
 				[Just user, _, _, _, _, Just _] ->
-					redirect_result =<< DB.User.delete (BS.U8.toString user) db
+					redirect_result =<< DB.User.delete (BS.U8.toString user) (Session.database session)
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -96,22 +98,23 @@ handle_account db request respond
 		redirect_result True = HTTP.respond_303 (path_prefix <> "account") request respond
 		redirect_result False = HTTP.respond_404 request respond
 
-handle_subjects :: DB.Type -> Wai.Application
-handle_subjects db request respond
+handle_subjects :: Session.Type -> Wai.Application
+handle_subjects session request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		do
-			subjects <- DB.Subject.list db
+			subjects <- DB.Subject.list (Session.database session)
 			HTTP.respond_XML
 				(XML.xslt
 					(path_prefix <> "subjects.xsl")
 					(XML.element "subjects" []
-						(map
-							(\ subject ->
-								XML.element "item" [] [
-									XML.element "identifier" [] [XML.text (show (DB.Subject.identifier subject))],
-									XML.element "title" [] [XML.text (DB.Subject.title subject)],
-									XML.element "description" [] [XML.text (DB.Subject.description subject)]])
-							subjects)))
+						(Web.Tool.user_XML (Session.user session) :
+							map
+								(\ subject ->
+									XML.element "item" [] [
+										XML.element "identifier" [] [XML.text (show (DB.Subject.identifier subject))],
+										XML.element "title" [] [XML.text (DB.Subject.title subject)],
+										XML.element "description" [] [XML.text (DB.Subject.description subject)]])
+								subjects)))
 				request
 				respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
@@ -123,7 +126,7 @@ handle_subjects db request respond
 					BS.U8.toString <$> lookup "description" parameters)
 				of
 					(Just title, Just description) ->
-						DB.Subject.add title description db >>= \case
+						DB.Subject.add title description (Session.database session) >>= \case
 							Nothing ->
 								HTTP.respond_404 request respond
 							Just identifier ->
@@ -132,17 +135,18 @@ handle_subjects db request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_subject :: DB.Type -> DB.Subject.Identifier -> Wai.Application
-handle_subject db identifier request respond
+handle_subject :: Session.Type -> DB.Subject.Identifier -> Wai.Application
+handle_subject session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		DB.Subject.get identifier db >>= \case
+		DB.Subject.get identifier (Session.database session) >>= \case
 			[subject] ->
 				do
-					courses <- DB.Course.list identifier db
+					courses <- DB.Course.list identifier (Session.database session)
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "subject.xsl")
 							(XML.element "subject" [] [
+								Web.Tool.user_XML (Session.user session),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "title" [] [XML.text (DB.Subject.title subject)],
 								XML.element "description" [] [XML.text (DB.Subject.description subject)],
@@ -168,7 +172,7 @@ handle_subject db identifier request respond
 				of
 					(_, _, Just _) ->
 						do
-							_ <- DB.Subject.delete identifier db
+							_ <- DB.Subject.delete identifier (Session.database session)
 							HTTP.respond_303 "../subjects" request respond
 					(Just title, Just description, Nothing) ->
 						let
@@ -179,7 +183,7 @@ handle_subject db identifier request respond
 									DB.Subject.description = description}
 							redirect_result True = HTTP.respond_303 "" request respond
 							redirect_result False = HTTP.respond_404 request respond
-							in redirect_result =<< DB.Subject.set subject db
+							in redirect_result =<< DB.Subject.set subject (Session.database session)
 					_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -200,17 +204,18 @@ handle_course_new db subject request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_course :: DB.Type -> DB.Course.Identifier -> Wai.Application
-handle_course db identifier request respond
+handle_course :: Session.Type -> DB.Course.Identifier -> Wai.Application
+handle_course session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		DB.Course.get identifier db >>= \case
+		DB.Course.get identifier (Session.database session) >>= \case
 			[course] ->
 				do
-					lessons <- DB.Lesson.list identifier db
+					lessons <- DB.Lesson.list identifier (Session.database session)
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "course.xsl")
 							(XML.element "course" [] [
+								Web.Tool.user_XML (Session.user session),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "subject" [] [XML.text (show (DB.Course.subject course))],
 								XML.element "title" [] [XML.text (DB.Course.title course)],
@@ -232,7 +237,7 @@ handle_course db identifier request respond
 			case map (flip lookup parameters) ["subject", "title", "description", "delete"] of
 				[Just subject, _, _, Just _] ->
 					do
-						_ <- DB.Course.delete identifier db
+						_ <- DB.Course.delete identifier (Session.database session)
 						HTTP.respond_303 ("../subject/" <> subject) request respond
 				[Just subject', Just title, Just description, Nothing] ->
 					case readMaybe (BS.U8.toString subject') of
@@ -245,7 +250,7 @@ handle_course db identifier request respond
 										DB.Course.title = BS.U8.toString title,
 										DB.Course.description = BS.U8.toString description}
 								in
-									DB.Course.set new db >>= \case
+									DB.Course.set new (Session.database session) >>= \case
 										True -> HTTP.respond_303 "" request respond
 										False -> HTTP.respond_404 request respond
 						_ -> HTTP.respond_400 "Incorrect subject" request respond
@@ -269,17 +274,18 @@ handle_lesson_new db course request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_lesson :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
-handle_lesson db identifier request respond
+handle_lesson :: Session.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_lesson session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		DB.Lesson.get identifier db >>= \case
+		DB.Lesson.get identifier (Session.database session) >>= \case
 			[lesson] ->
 				do
-					questions <- DB.Question.list identifier db
+					questions <- DB.Question.list identifier (Session.database session)
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "lesson.xsl")
 							(XML.element "lesson" [] [
+								Web.Tool.user_XML (Session.user session),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "number" [] [XML.text (show (DB.Lesson.number lesson))],
 								XML.element "course" [] [XML.text (show (DB.Lesson.course lesson))],
@@ -301,7 +307,7 @@ handle_lesson db identifier request respond
 			case map (flip lookup parameters) ["course", "number", "title", "content", "delete"] of
 				[Just course, _, _, _, Just _] ->
 					do
-						_ <- DB.Lesson.delete identifier db
+						_ <- DB.Lesson.delete identifier (Session.database session)
 						HTTP.respond_303 ("../course/" <> course) request respond
 				[Just course', Just number', Just title, Just content, Nothing] ->
 					case (readMaybe (BS.U8.toString course'), readMaybe (BS.U8.toString number')) of
@@ -315,7 +321,7 @@ handle_lesson db identifier request respond
 										DB.Lesson.title = BS.U8.toString title,
 										DB.Lesson.content = BS.U8.toString content}
 								in
-									DB.Lesson.set new db >>= \case
+									DB.Lesson.set new (Session.database session) >>= \case
 										True -> HTTP.respond_303 "" request respond
 										False -> HTTP.respond_404 request respond
 						_ -> HTTP.respond_400 "Incorrect course or number" request respond
@@ -356,17 +362,18 @@ handle_question_new db lesson request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_question :: DB.Type -> DB.Question.Identifier -> Wai.Application
-handle_question db identifier request respond
+handle_question :: Session.Type -> DB.Question.Identifier -> Wai.Application
+handle_question session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		DB.Question.get identifier db >>= \case
+		DB.Question.get identifier (Session.database session) >>= \case
 			[question] ->
 				do
-					answers <- DB.Answer.list identifier db
+					answers <- DB.Answer.list identifier (Session.database session)
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "question.xsl")
 							(XML.element "question" [] [
+								Web.Tool.user_XML (Session.user session),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "lesson" [] [XML.text (show (DB.Question.lesson question))],
 								XML.element "text" [] [XML.text (DB.Question.text question)],
@@ -387,7 +394,7 @@ handle_question db identifier request respond
 			case map (flip lookup parameters) ["lesson", "text", "delete"] of
 				[Just lesson, _, Just _] ->
 					do
-						_ <- DB.Question.delete identifier db
+						_ <- DB.Question.delete identifier (Session.database session)
 						HTTP.respond_303 ("../lesson/" <> lesson) request respond
 				[Just lesson', Just text, Nothing] ->
 					case readMaybe (BS.U8.toString lesson') of
@@ -399,7 +406,7 @@ handle_question db identifier request respond
 										DB.Question.lesson = lesson,
 										DB.Question.text = BS.U8.toString text}
 								in
-									DB.Question.set new db >>= \case
+									DB.Question.set new (Session.database session) >>= \case
 										True -> HTTP.respond_303 "" request respond
 										False -> HTTP.respond_404 request respond
 						_ -> HTTP.respond_400 "Incorrect lesson" request respond
@@ -423,15 +430,15 @@ handle_answer_new db question request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_answer :: DB.Type -> DB.Answer.Identifier -> Wai.Application
-handle_answer db identifier request respond
+handle_answer :: Session.Type -> DB.Answer.Identifier -> Wai.Application
+handle_answer session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case map (flip lookup parameters) ["question", "text", "mark", "delete"] of
 				[Just question, _, _, Just _] ->
 					do
-						_ <- DB.Answer.delete identifier db
+						_ <- DB.Answer.delete identifier (Session.database session)
 						HTTP.respond_303 ("../question/" <> question) request respond
 				[Just question', Just text, Just mark', Nothing] ->
 					case (readMaybe (BS.U8.toString question'), readMaybe (BS.U8.toString mark')) of
@@ -444,7 +451,7 @@ handle_answer db identifier request respond
 										DB.Answer.text = BS.U8.toString text,
 										DB.Answer.mark = mark}
 								in
-									DB.Answer.set new db >>= \case
+									DB.Answer.set new (Session.database session) >>= \case
 										True -> HTTP.respond_303 ("../question/" <> question') request respond
 										False -> HTTP.respond_404 request respond
 						_ -> HTTP.respond_400 "Incorrect question" request respond
@@ -455,13 +462,13 @@ handle_answer db identifier request respond
 handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
 	case session of
-		Session.Record{Session.user = Just DB.User.Record{DB.User.role = Constant.Role.SysOp}, Session.database = db} ->
+		Session.Record{Session.user = DB.User.Record{DB.User.role = Constant.Role.SysOp}, Session.database = db} ->
 			case path of
-				["account"] -> handle_account db request respond
-				["subjects"] -> handle_subjects db request respond
+				["account"] -> handle_account session request respond
+				["subjects"] -> handle_subjects session request respond
 				["subject", subject'] ->
 					case readMaybe (Data.Text.unpack subject') of
-						Just subject -> handle_subject db subject request respond
+						Just subject -> handle_subject session subject request respond
 						_ -> next request respond
 				["course", "new", subject'] ->
 					case readMaybe (Data.Text.unpack subject') of
@@ -469,7 +476,7 @@ handle session path next request respond =
 						_ -> next request respond
 				["course", course'] ->
 					case readMaybe (Data.Text.unpack course') of
-						Just course -> handle_course db course request respond
+						Just course -> handle_course session course request respond
 						_ -> next request respond
 				["lesson", "new", course'] ->
 					case readMaybe (Data.Text.unpack course') of
@@ -477,7 +484,7 @@ handle session path next request respond =
 						_ -> next request respond
 				["lesson", lesson'] ->
 					case readMaybe (Data.Text.unpack lesson') of
-						Just lesson -> handle_lesson db lesson request respond
+						Just lesson -> handle_lesson session lesson request respond
 						_ -> next request respond
 				["lesson", "exchange", course'] ->
 					case readMaybe (Data.Text.unpack course') of
@@ -489,7 +496,7 @@ handle session path next request respond =
 						_ -> next request respond
 				["question", question'] ->
 					case readMaybe (Data.Text.unpack question') of
-						Just question -> handle_question db question request respond
+						Just question -> handle_question session question request respond
 						_ -> next request respond
 				["answer", "new", question'] ->
 					case readMaybe (Data.Text.unpack question') of
@@ -497,7 +504,7 @@ handle session path next request respond =
 						_ -> next request respond
 				["answer", answer'] ->
 					case readMaybe (Data.Text.unpack answer') of
-						Just answer -> handle_answer db answer request respond
+						Just answer -> handle_answer session answer request respond
 						_ -> next request respond
 				_ -> next request respond
 		_ -> HTTP.respond_403 request respond

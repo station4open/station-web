@@ -14,12 +14,9 @@
 		<body>
 			<xsl:call-template name='menubar'/>
 			<p>
-				Welcome <strong><xsl:value-of select='@name'/></strong>.
-			</p>
-			<p>
 				The settings of your account can <a href='/account'>be changed here</a>.
 			</p>
-			<xsl:if test='@role="SysOp"'>
+			<xsl:if test='session/role="SysOp"'>
 				<p>
 					System operator can manage <a href='/sysop/account'>accounts</a> and <a href='/sysop/subjects'>lessons</a> of
 					this site.

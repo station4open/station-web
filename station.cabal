@@ -29,6 +29,7 @@ executable station
     Station.Database.Work
     Station.HTTP
     Station.Web
+    Station.Web.Tool
     Station.Web.Session
     Station.Web.Bin
     Station.Web.SysOp

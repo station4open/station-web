@@ -4,7 +4,7 @@ import Prelude (fromEnum)
 import Data.Bool (Bool (True, False))
 import Data.Maybe (Maybe (Nothing, Just), maybe, fromMaybe)
 import Data.List ((++))
-import Data.Function (($))
+import Data.Function (id, ($))
 import Data.Functor ((<$>))
 import Control.Monad (return, (>>=), (=<<))
 import Text.Show (show)
@@ -61,7 +61,6 @@ auth_check user' =
 			case Wai.pathInfo request of
 				"bin" : "logout" : [] -> return False
 				"public" : _ : _ -> return False
-				"home.xhtml" : [] -> return False
 				"favicon.ico" : [] -> return False
 				_ -> return True
 		check :: HttpAuth.CheckCreds
@@ -96,17 +95,19 @@ main =
 					db <- DB.connectPostgreSQL (BS.C8.pack dburl)
 					let handle request respond =
 						do
-							user <- get_user db request
+							user' <- get_user db request
 							let application =
 								HTTP.log log
 									$ handle_home
-									$ auth_check user
-									$ Web.handle
-										Session.Record{
-											Session.database = db,
-											Session.user = user}
-									$ Wai.Static.staticApp
-									$ Wai.Static.defaultWebAppSettings static_path
+									$ auth_check user'
+									$ case user' of
+										Nothing -> id
+										Just user ->
+											Web.handle
+												Session.Record{
+													Session.database = db,
+													Session.user = user}
+									$ Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path)
 							application request respond
 					Warp.run port handle
 			["adduser", username@(_:_), password@(_:_), role's@(_:_)] ->
