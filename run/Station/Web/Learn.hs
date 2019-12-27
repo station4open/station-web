@@ -4,7 +4,7 @@ import Prelude ()
 import Data.Bool (otherwise)
 import Data.Eq ((==))
 import Data.Maybe (Maybe (Just), catMaybes)
-import Data.Tuple (fst)
+import Data.Tuple (fst, snd)
 import Data.Monoid ((<>))
 import Data.Function ((.))
 import Data.Functor ((<$>))
@@ -13,7 +13,6 @@ import Data.String (IsString)
 import Control.Monad ((>>=))
 import Text.Show (show)
 import Text.Read (readMaybe)
-import System.IO (print)
 import qualified Data.ByteString.UTF8 as BS.U8
 import qualified Data.Text (Text, unpack)
 import qualified Network.HTTP.Types
@@ -128,31 +127,14 @@ handle_lesson session lesson_identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-			print (DB.User.name (Session.user session))
-			print lesson_identifier
-			print parameters
 			DB.Work.add
 				(DB.User.name (Session.user session))
 				lesson_identifier
-				(catMaybes (map (readMaybe . BS.U8.toString . fst) parameters))
+				(catMaybes (map (readMaybe . BS.U8.toString . snd) parameters))
 				(Session.database session)
 			HTTP.respond_303 "" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
-
-handle_answer :: Session.Type -> DB.Lesson.Identifier -> Wai.Application
-handle_answer session identifier request respond =
-	DB.Lesson.get identifier (Session.database session) >>= \case
-		[lesson] ->
-			do
-				parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-				DB.Work.add
-					(DB.User.name (Session.user session))
-					(DB.Lesson.identifier lesson)
-					(catMaybes (map (\ (k, _) -> readMaybe (BS.U8.toString k)) parameters))
-					(Session.database session)
-				HTTP.respond_404 request respond
-		_ -> HTTP.respond_404 request respond
 
 handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
@@ -168,9 +150,5 @@ handle session path next request respond =
 		["lesson", lesson'] ->
 			case readMaybe (Data.Text.unpack lesson') of
 				Just lesson -> handle_lesson session lesson request respond
-				_ -> HTTP.respond_404 request respond
-		["answer", lesson'] ->
-			case readMaybe (Data.Text.unpack lesson') of
-				Just lesson -> handle_answer session lesson request respond
 				_ -> HTTP.respond_404 request respond
 		_ -> next request respond

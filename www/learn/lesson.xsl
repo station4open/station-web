@@ -25,25 +25,26 @@
 					<xsl:for-each select='questions/question'>
 						<li>
 							<xsl:value-of select='text'/>
-							(<xsl:value-of select='mark'/> point<xsl:if test='mark!=1'>s</xsl:if>)
-							<ul>
+							<fieldset>
+								<legend>
+									<xsl:value-of select='mark'/> point<xsl:if test='mark!=1'>s</xsl:if>
+								</legend>
 								<xsl:for-each select='answers/answer'>
-									<li>
-										<label>
-											<input type='checkbox'>
-												<xsl:attribute name='name'><xsl:value-of select='identifier'/></xsl:attribute>
-												<xsl:if test='@answered'>
-													<xsl:attribute name='checked'/>
-												</xsl:if>
-											</input>
-											<xsl:value-of select='text'/>
+									<label style='display:block'>
+										<input type='radio'>
+											<xsl:attribute name='name'><xsl:value-of select='../../identifier'/></xsl:attribute>
+											<xsl:attribute name='value'><xsl:value-of select='identifier'/></xsl:attribute>
 											<xsl:if test='@answered'>
-												(<xsl:value-of select='@answered'/> point<xsl:if test='@answered!=1'>s</xsl:if>)
+												<xsl:attribute name='checked'/>
 											</xsl:if>
-										</label>
-									</li>
+										</input>
+										<xsl:value-of select='text'/>
+										<xsl:if test='@answered'>
+											(<xsl:value-of select='@answered'/> point<xsl:if test='@answered!=1'>s</xsl:if>)
+										</xsl:if>
+									</label>
 								</xsl:for-each>
-							</ul>
+							</fieldset>
 						</li>
 					</xsl:for-each>
 					<input type='submit' value='Submit'/>
