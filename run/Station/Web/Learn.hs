@@ -8,7 +8,8 @@ import Data.Tuple (fst, snd)
 import Data.Monoid ((<>))
 import Data.Function ((.))
 import Data.Functor ((<$>))
-import Data.List (map, sum)
+import Data.Foldable (maximum)
+import Data.List (map)
 import Data.String (IsString)
 import Control.Monad ((>>=))
 import Text.Show (show)
@@ -108,7 +109,7 @@ handle_lesson session lesson_identifier request respond
 										XML.element "question" [] [
 											XML.element "identifier" [] [XML.text (show (DB.Question.identifier question))],
 											XML.element "text" [] [XML.text (DB.Question.text question)],
-											XML.element "mark" [] [XML.text (show (sum (map (DB.Answer.mark . fst) answers)))],
+											XML.element "mark" [] [XML.text (show (maximum (0 : map (DB.Answer.mark . fst) answers)))],
 											XML.element "answers" []
 												(map
 													(\ (answer, answered) ->

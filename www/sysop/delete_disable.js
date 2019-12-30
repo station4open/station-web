@@ -1,11 +1,9 @@
 'use strict';
 
 (function (run) {
-	if (document.readyState === 'loading')
-		return document.addEventListener('DOMContentLoaded', run);
-	else
-		return run();
-}(function () {
+	if (document.readyState !== 'loading') return this();
+	else return document.addEventListener('DOMContentLoaded', this);
+}.call(function () {
 	var forms = document.getElementsByTagName('form');
 	for (var i=0; i<forms.length; ++i)
 		(function (form) {
@@ -21,4 +19,4 @@
 				return update();
 			}
 		})(forms.item(i));
-}))
+}));

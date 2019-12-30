@@ -10,6 +10,7 @@
 	<html>
 		<head>
 			<title>Station - Lesson</title>
+			<script src='../lesson.js' type='application/ecmascript'></script>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
@@ -27,11 +28,11 @@
 							<xsl:value-of select='text'/>
 							<fieldset>
 								<legend>
-									<xsl:value-of select='mark'/> point<xsl:if test='mark!=1'>s</xsl:if>
+									Full mark: <xsl:value-of select='mark'/> point<xsl:if test='mark!=1'>s</xsl:if>
 								</legend>
 								<xsl:for-each select='answers/answer'>
 									<label style='display:block'>
-										<input type='radio'>
+										<input type='radio' required=''>
 											<xsl:attribute name='name'><xsl:value-of select='../../identifier'/></xsl:attribute>
 											<xsl:attribute name='value'><xsl:value-of select='identifier'/></xsl:attribute>
 											<xsl:if test='@answered'>
@@ -40,7 +41,7 @@
 										</input>
 										<xsl:value-of select='text'/>
 										<xsl:if test='@answered'>
-											(<xsl:value-of select='@answered'/> point<xsl:if test='@answered!=1'>s</xsl:if>)
+											(<b><xsl:value-of select='@answered'/> point<xsl:if test='@answered!=1'>s</xsl:if></b>)
 										</xsl:if>
 									</label>
 								</xsl:for-each>
