@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Station.Database.Answer (
 	Identifier,
 	Type (Record, identifier, question, text, mark),
@@ -20,6 +22,7 @@ import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 
 import qualified Station.Database
 import qualified Station.Database.Question as DB.Question
@@ -65,14 +68,14 @@ get :: Identifier -> DB.Connection -> IO [Type]
 get answer_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"QUESTION\",\"TEXT\",\"MARK\" FROM \"ANSWER\" WHERE \"IDENTIFIER\"=?"
+		[sql| SELECT "IDENTIFIER","QUESTION","TEXT","MARK" FROM "ANSWER" WHERE "IDENTIFIER"=? |]
 		(DB.Only answer_identifier)
 
 list :: DB.Question.Identifier -> DB.Connection -> IO [Type]
 list question_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"QUESTION\",\"TEXT\",\"MARK\" FROM \"ANSWER\" WHERE \"QUESTION\"=?"
+		[sql| SELECT "IDENTIFIER","QUESTION","TEXT","MARK" FROM "ANSWER" WHERE "QUESTION"=? |]
 		(DB.Only question_identifier)
 
 delete :: Identifier -> DB.Connection -> IO Bool
@@ -81,7 +84,7 @@ delete answer_identifier db =
 		<$>
 			DB.execute
 				db
-				"DELETE FROM \"ANSWER\" WHERE \"IDENTIFIER\"=?"
+				[sql| DELETE FROM "ANSWER" WHERE "IDENTIFIER"=? |]
 				(DB.Only answer_identifier)
 
 add :: DB.Question.Identifier -> String -> Int32 -> DB.Connection -> IO (Maybe Identifier)
@@ -92,7 +95,7 @@ add answer_question answer_text answer_mark db =
 		<$>
 			DB.query
 				db
-				"INSERT INTO \"ANSWER\"(\"QUESTION\",\"TEXT\",\"MARK\") VALUES (?,?,?) RETURNING \"IDENTIFIER\""
+				[sql| INSERT INTO "ANSWER"("QUESTION","TEXT","MARK") VALUES (?,?,?) RETURNING "IDENTIFIER" |]
 				(answer_question, answer_text, answer_mark)
 
 set :: Type -> DB.Connection -> IO Bool
@@ -101,5 +104,5 @@ set answer db =
 		<$>
 			DB.execute
 				db
-				"UPDATE \"ANSWER\" SET \"QUESTION\"=?,\"TEXT\"=?,\"MARK\"=? WHERE \"IDENTIFIER\"=?"
+				[sql| UPDATE "ANSWER" SET "QUESTION"=?,"TEXT"=?,"MARK"=? WHERE "IDENTIFIER"=? |]
 				(question answer, text answer, mark answer, identifier answer)

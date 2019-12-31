@@ -97,7 +97,7 @@ add user_name lesson_identifier list_answer_identifier db =
 			void
 				(DB.executeMany
 					db
-					[sql| INSERT INTO "WORK" VALUES (?, ?) |]
+					[sql| INSERT INTO "WORK" VALUES (?,?) |]
 					(map (\ a -> (user_name, a)) list_answer_identifier))
 			void
 				(DB.execute

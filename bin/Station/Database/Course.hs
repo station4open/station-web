@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Station.Database.Course (
 	Identifier,
 	Type (Record, identifier, subject, title, description),
@@ -20,6 +22,7 @@ import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 
 import qualified Station.Database.Subject as DB.Subject
 
@@ -64,14 +67,14 @@ get :: Identifier -> DB.Connection -> IO [Type]
 get course_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"SUBJECT\",\"TITLE\",\"DESCRIPTION\" FROM \"COURSE\" WHERE \"IDENTIFIER\"=?"
+		[sql| SELECT "IDENTIFIER","SUBJECT","TITLE","DESCRIPTION" FROM "COURSE" WHERE "IDENTIFIER"=? |]
 		(DB.Only course_identifier)
 
 list :: DB.Subject.Identifier -> DB.Connection -> IO [Type]
 list subject_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"SUBJECT\",\"TITLE\",\"DESCRIPTION\" FROM \"COURSE\" WHERE \"SUBJECT\"=?"
+		[sql| SELECT "IDENTIFIER","SUBJECT","TITLE","DESCRIPTION" FROM "COURSE" WHERE "SUBJECT"=? |]
 		(DB.Only subject_identifier)
 
 delete :: Identifier -> DB.Connection -> IO Bool
@@ -80,7 +83,7 @@ delete course_identifier db =
 		<$>
 			DB.execute
 				db
-				"DELETE FROM \"COURSE\" WHERE \"IDENTIFIER\"=?"
+				[sql| DELETE FROM "COURSE" WHERE "IDENTIFIER"=? |]
 				(DB.Only course_identifier)
 
 add :: DB.Subject.Identifier -> String -> String -> DB.Connection -> IO (Maybe Identifier)
@@ -91,7 +94,7 @@ add course_subject course_title course_description db =
 		<$>
 			DB.query
 				db
-				"INSERT INTO \"COURSE\"(\"SUBJECT\",\"TITLE\",\"DESCRIPTION\") VALUES (?,?,?) RETURNING \"IDENTIFIER\""
+				[sql| INSERT INTO "COURSE"("SUBJECT","TITLE","DESCRIPTION") VALUES (?,?,?) RETURNING "IDENTIFIER" |]
 				(course_subject, course_title, course_description)
 
 set :: Type -> DB.Connection -> IO Bool
@@ -100,5 +103,5 @@ set course db =
 		<$>
 			DB.execute
 				db
-				"UPDATE \"COURSE\" SET \"SUBJECT\"=?,\"TITLE\"=?,\"DESCRIPTION\"=? WHERE \"IDENTIFIER\"=?"
+				[sql| UPDATE "COURSE" SET "SUBJECT"=?,"TITLE"=?,"DESCRIPTION"=? WHERE "IDENTIFIER"=? |]
 				(subject course, title course, description course, identifier course)

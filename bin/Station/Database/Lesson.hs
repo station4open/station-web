@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Station.Database.Lesson (
 	Identifier, Number,
 	Type (Record, identifier, course, number, title, content),
@@ -21,6 +23,7 @@ import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 
 import qualified Station.Database.Course as DB.Course
 
@@ -70,19 +73,21 @@ get :: Identifier -> DB.Connection -> IO [Type]
 get lesson_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"COURSE\",\"NUMBER\",\"TITLE\",\"CONTENT\" \
-			\FROM \"LESSON\" \
-			\WHERE \"IDENTIFIER\"=?"
+		[sql|
+			SELECT "IDENTIFIER","COURSE","NUMBER","TITLE","CONTENT"
+				FROM "LESSON"
+				WHERE "IDENTIFIER"=? |]
 		(DB.Only lesson_identifier)
 
 list :: DB.Course.Identifier -> DB.Connection -> IO [(Identifier, Number, String)]
 list course_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"NUMBER\",\"TITLE\" \
-			\FROM \"LESSON\" \
-			\WHERE \"COURSE\"=? \
-			\ORDER BY \"NUMBER\" ASC"
+		[sql|
+			SELECT "IDENTIFIER","NUMBER","TITLE"
+				FROM "LESSON"
+				WHERE "COURSE"=?
+				ORDER BY "NUMBER" ASC |]
 		(DB.Only course_identifier)
 
 delete :: Identifier -> DB.Connection -> IO Bool
@@ -91,12 +96,12 @@ delete lesson_identifier db =
 		<$>
 			DB.execute
 				db
-				"DELETE FROM \"LESSON\" WHERE \"IDENTIFIER\"=?"
+				[sql| DELETE FROM "LESSON" WHERE "IDENTIFIER"=? |]
 				(DB.Only lesson_identifier)
 
 add :: DB.Course.Identifier -> String -> String -> DB.Connection -> IO (Maybe Identifier)
 add lesson_course lesson_title lesson_content db =
-	DB.query db "SELECT COUNT(*)::INTEGER FROM \"LESSON\" WHERE \"COURSE\"=?" (DB.Only lesson_course) >>= \case
+	DB.query db [sql| SELECT COUNT(*)::INTEGER FROM "LESSON" WHERE "COURSE"=? |] (DB.Only lesson_course) >>= \case
 		[DB.Only n] ->
 			(\case
 				[DB.Only result] -> (Just result)
@@ -104,9 +109,10 @@ add lesson_course lesson_title lesson_content db =
 				<$>
 					DB.query
 						db
-						"INSERT INTO \"LESSON\"(\"COURSE\",\"NUMBER\",\"TITLE\",\"CONTENT\") \
-							\VALUES (?,?,?,?) \
-							\RETURNING \"IDENTIFIER\""
+						[sql|
+							INSERT INTO "LESSON"("COURSE","NUMBER","TITLE","CONTENT")
+								VALUES (?,?,?,?)
+								RETURNING "IDENTIFIER" |]
 						(lesson_course, succ n :: Number, lesson_title, lesson_content)
 		_ -> return Nothing
 
@@ -116,9 +122,10 @@ set lesson db =
 		<$>
 			DB.execute
 				db
-				"UPDATE \"LESSON\" \
-					\SET \"COURSE\"=?,\"NUMBER\"=?,\"TITLE\"=?,\"CONTENT\"=? \
-					\WHERE \"IDENTIFIER\"=?"
+				[sql|
+					UPDATE "LESSON"
+						SET "COURSE"=?,"NUMBER"=?,"TITLE"=?,"CONTENT"=?
+						WHERE "IDENTIFIER"=? |]
 				(course lesson, number lesson, title lesson, content lesson, identifier lesson)
 
 exchange :: Identifier -> Identifier -> DB.Connection -> IO Bool
@@ -127,10 +134,11 @@ exchange lesson_1 lesson_2 db =
 		<$>
 			DB.execute
 				db
-				"WITH \"L\" AS (SELECT * FROM \"LESSON\" WHERE \"IDENTIFIER\" IN (?,?)) \
-					\UPDATE \"LESSON\" \
-						\SET \"NUMBER\"=\"L2\".\"NUMBER\" \
-						\FROM \"L\" AS \"L1\", \"L\" AS \"L2\" \
-						\WHERE \"LESSON\".\"IDENTIFIER\"=\"L1\".\"IDENTIFIER\" \
-							\AND \"L1\".\"IDENTIFIER\"<>\"L2\".\"IDENTIFIER\""
+				[sql|
+					WITH "L" AS (SELECT * FROM "LESSON" WHERE "IDENTIFIER" IN (?,?))
+						UPDATE "LESSON"
+							SET "NUMBER"="L2"."NUMBER"
+							FROM "L" AS "L1", "L" AS "L2"
+							WHERE "LESSON"."IDENTIFIER"="L1"."IDENTIFIER"
+								AND "L1"."IDENTIFIER"<>"L2"."IDENTIFIER" |]
 				(lesson_1, lesson_2)

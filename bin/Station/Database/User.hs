@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Station.Database.User (
 	Type (Record, name, password, role, mark),
 	get, list, check, delete, add, set, set_password
@@ -19,6 +21,7 @@ import qualified Database.PostgreSQL.Simple as DB
 import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 
 import qualified Station.Database
 import qualified Station.Constant as Constant
@@ -45,16 +48,16 @@ get :: String -> DB.Connection -> IO [Type]
 get user_name db =
 	DB.query
 		db
-		"SELECT \"NAME\",\"PASSWORD\",\"ROLE\",\"MARK\" FROM \"USER\" WHERE \"NAME\"=?"
+		[sql| SELECT "NAME","PASSWORD","ROLE","MARK" FROM "USER" WHERE "NAME"=? |]
 		(DB.Only user_name)
 
 list :: DB.Connection -> IO [Type]
-list db = DB.query_ db "SELECT \"NAME\",\"PASSWORD\",\"ROLE\",\"MARK\" FROM \"USER\""
+list db = DB.query_ db [sql| SELECT "NAME","PASSWORD","ROLE","MARK" FROM "USER" |]
 
 check :: BS.ByteString -> BS.ByteString -> DB.Connection -> IO Bool
 check user word db =
 	do
-		hashed <- DB.query db "SELECT \"PASSWORD\" FROM \"USER\" WHERE \"NAME\"=?" (DB.Only user)
+		hashed <- DB.query db [sql| SELECT "PASSWORD" FROM "USER" WHERE "NAME"=? |] (DB.Only user)
 		let
 			pass :: Crypto.Scrypt.Pass
 			pass = Crypto.Scrypt.Pass word
@@ -65,7 +68,7 @@ hash_password word =
 	Crypto.Scrypt.getEncryptedPass <$> Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.U8.fromString word))
 
 delete :: String -> DB.Connection -> IO Bool
-delete user db = (1 ==) <$> DB.execute db "DELETE FROM \"USER\" WHERE \"NAME\"=?" (DB.Only user)
+delete user db = (1 ==) <$> DB.execute db [sql| DELETE FROM "USER" WHERE "NAME"=? |] (DB.Only user)
 
 add :: Type -> DB.Connection -> IO Bool
 add user db =
@@ -74,7 +77,7 @@ add user db =
 		n <-
 			DB.execute
 				db
-				"INSERT INTO \"USER\" (\"NAME\",\"PASSWORD\",\"ROLE\",\"MARK\") VALUES (?,?,?,?)"
+				[sql| INSERT INTO "USER" ("NAME","PASSWORD","ROLE","MARK") VALUES (?,?,?,?) |]
 				(name user, hash, fromEnum (role user))
 		return (n == 1)
 
@@ -86,7 +89,7 @@ set old new db =
 				n <-
 					DB.execute
 						db
-						"UPDATE \"USER\" SET \"NAME\"=?,\"ROLE\"=? WHERE \"NAME\"=?"
+						[sql| UPDATE "USER" SET "NAME"=?,"ROLE"=? WHERE "NAME"=? |]
 						(name new, fromEnum (role new), old)
 				return (n == 1)
 		new_password ->
@@ -95,7 +98,7 @@ set old new db =
 				n <-
 					DB.execute
 						db
-						"UPDATE \"USER\" SET \"NAME\"=?,\"PASSWORD\"=?,\"ROLE\"=? WHERE \"NAME\"=?"
+						[sql| UPDATE "USER" SET "NAME"=?,"PASSWORD"=?,"ROLE"=? WHERE "NAME"=? |]
 						(name new, hash, fromEnum (role new), old)
 				return (n == 1)
 
@@ -106,6 +109,6 @@ set_password user_name new_password db =
 		n <-
 			DB.execute
 				db
-				"UPDATE \"USER\" SET \"PASSWORD\"=? WHERE \"NAME\"=?"
+				[sql| UPDATE "USER" SET "PASSWORD"=? WHERE "NAME"=? |]
 				(hash, user_name)
 		return (n == 1)

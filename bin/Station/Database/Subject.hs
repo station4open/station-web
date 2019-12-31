@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Station.Database.Subject (
 	Identifier,
 	Type (Record, identifier, title, description),
@@ -20,6 +22,7 @@ import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 
 newtype Identifier = Identifier Int32
 
@@ -49,21 +52,17 @@ instance DB.ToRow Type where
 			DB.toField (description subject)]
 
 instance DB.FromRow Type where
-	fromRow =
-		Record
-			<$> DB.field
-			<*> DB.field
-			<*> DB.field
+	fromRow = Record <$> DB.field <*> DB.field <*> DB.field
 
 get :: Identifier -> DB.Connection -> IO [Type]
 get subject_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"TITLE\",\"DESCRIPTION\" FROM \"SUBJECT\" WHERE \"IDENTIFIER\"=?"
+		[sql| SELECT "IDENTIFIER","TITLE","DESCRIPTION" FROM "SUBJECT" WHERE "IDENTIFIER"=? |]
 		(DB.Only subject_identifier)
 
 list :: DB.Connection -> IO [Type]
-list db = DB.query_ db "SELECT \"IDENTIFIER\",\"TITLE\",\"DESCRIPTION\" FROM \"SUBJECT\""
+list db = DB.query_ db [sql| SELECT "IDENTIFIER","TITLE","DESCRIPTION" FROM "SUBJECT" |]
 
 delete :: Identifier -> DB.Connection -> IO Bool
 delete subject_identifier db =
@@ -71,7 +70,7 @@ delete subject_identifier db =
 		<$>
 			DB.execute
 				db
-				"DELETE FROM \"SUBJECT\" WHERE \"IDENTIFIER\"=?"
+				[sql| DELETE FROM "SUBJECT" WHERE "IDENTIFIER"=? |]
 				(DB.Only subject_identifier)
 
 add :: String -> String -> DB.Connection -> IO (Maybe Int32)
@@ -82,7 +81,7 @@ add subject_title subject_description db =
 		<$>
 			DB.query
 				db
-				"INSERT INTO \"SUBJECT\"(\"TITLE\",\"DESCRIPTION\") VALUES (?,?) RETURNING \"IDENTIFIER\""
+				[sql| INSERT INTO "SUBJECT"("TITLE","DESCRIPTION") VALUES (?,?) RETURNING "IDENTIFIER" |]
 				(subject_title, subject_description)
 
 set :: Type -> DB.Connection -> IO Bool
@@ -91,5 +90,5 @@ set subject db =
 		<$>
 			DB.execute
 				db
-				"UPDATE \"SUBJECT\" SET \"TITLE\"=?,\"DESCRIPTION\"=? WHERE \"IDENTIFIER\"=?"
+				[sql| UPDATE "SUBJECT" SET "TITLE"=?,"DESCRIPTION"=? WHERE "IDENTIFIER"=? |]
 				(title subject, description subject, identifier subject)

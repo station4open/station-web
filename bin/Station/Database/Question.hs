@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Station.Database.Question (
 	Identifier,
 	Type (Record, identifier, lesson, text),
@@ -20,6 +22,7 @@ import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 
 import qualified Station.Database.Lesson as DB.Lesson
 
@@ -61,14 +64,14 @@ get :: Identifier -> DB.Connection -> IO [Type]
 get question_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"LESSON\",\"TEXT\" FROM \"QUESTION\" WHERE \"IDENTIFIER\"=?"
+		[sql| SELECT "IDENTIFIER","LESSON","TEXT" FROM "QUESTION" WHERE "IDENTIFIER"=? |]
 		(DB.Only question_identifier)
 
 list :: DB.Lesson.Identifier -> DB.Connection -> IO [Type]
 list lesson_identifier db =
 	DB.query
 		db
-		"SELECT \"IDENTIFIER\",\"LESSON\",\"TEXT\" FROM \"QUESTION\" WHERE \"LESSON\"=?"
+		[sql| SELECT "IDENTIFIER","LESSON","TEXT" FROM "QUESTION" WHERE "LESSON"=? |]
 		(DB.Only lesson_identifier)
 
 delete :: Identifier -> DB.Connection -> IO Bool
@@ -77,7 +80,7 @@ delete question_identifier db =
 		<$>
 			DB.execute
 				db
-				"DELETE FROM \"QUESTION\" WHERE \"IDENTIFIER\"=?"
+				[sql| DELETE FROM "QUESTION" WHERE "IDENTIFIER"=? |]
 				(DB.Only question_identifier)
 
 add :: DB.Lesson.Identifier -> String -> DB.Connection -> IO (Maybe Identifier)
@@ -88,7 +91,7 @@ add question_lesson question_text db =
 		<$>
 			DB.query
 				db
-				"INSERT INTO \"QUESTION\"(\"LESSON\",\"TEXT\") VALUES (?,?) RETURNING \"IDENTIFIER\""
+				[sql| INSERT INTO "QUESTION"("LESSON","TEXT") VALUES (?,?) RETURNING "IDENTIFIER" |]
 				(question_lesson, question_text)
 
 set :: Type -> DB.Connection -> IO Bool
@@ -97,5 +100,5 @@ set question db =
 		<$>
 			DB.execute
 				db
-				"UPDATE \"QUESTION\" SET \"LESSON\"=?,\"TEXT\"=? WHERE \"IDENTIFIER\"=?"
+				[sql| UPDATE "QUESTION" SET "LESSON"=?,"TEXT"=? WHERE "IDENTIFIER"=? |]
 				(lesson question, text question, identifier question)
