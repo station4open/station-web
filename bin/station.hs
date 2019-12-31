@@ -3,23 +3,27 @@ module Main (main) where
 import Prelude (fromEnum)
 import Data.Bool (Bool (True, False))
 import Data.Maybe (Maybe (Nothing, Just), maybe, fromMaybe)
-import Data.List ((++))
+import Data.List ((++), (\\), sort)
 import Data.Function (id, ($))
 import Data.Functor ((<$>))
 import Control.Monad (return, (>>=), (=<<))
 import Text.Show (show)
 import Text.Read (readMaybe)
 import System.Exit (exitSuccess, exitFailure)
-import System.FilePath (FilePath)
+import System.FilePath (FilePath, (</>))
 import System.IO (IO, stdout, putStrLn, BufferMode (LineBuffering), hSetBuffering)
 import System.Environment (getArgs, lookupEnv)
+import System.Directory (listDirectory)
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS.C8
 import qualified Crypto.Scrypt
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Middleware.HttpAuth as HttpAuth
 import qualified Network.Wai.Application.Static as Wai.Static
 import qualified Network.Wai.Handler.Warp as Warp
+import qualified Database.PostgreSQL.LibPQ
 import qualified Database.PostgreSQL.Simple as DB
+import qualified Database.PostgreSQL.Simple.Internal as DB (exec)
 
 import qualified Station.Constant as Constant
 import qualified Station.Constant.Role as Constant.Role
@@ -35,6 +39,9 @@ default_port = 8000
 
 static_path :: FilePath
 static_path = "www"
+
+migration_path :: FilePath
+migration_path = "sql/migration"
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}
 
@@ -77,6 +84,31 @@ auth_check user' =
 		realm :: HttpAuth.AuthSettings
 		realm = Constant.auth_realm{HttpAuth.authIsProtected = protect}
 		in HttpAuth.basicAuth check realm
+
+migrate :: DB.Connection -> IO ()
+migrate db =
+	do
+		files <- listDirectory migration_path
+		only_done <- DB.query_ db "SELECT \"FILE\" FROM \"MIGRATION\" ORDER BY \"FILE\""
+		let
+			done = DB.fromOnly <$> only_done
+			todo = sort (files \\ done)
+			loop [] = return ()
+			loop (f : fs) =
+				do
+					putStrLn ("migrate: " ++ f)
+					sql <- BS.readFile (migration_path </> f)
+					result <- DB.exec db sql
+					status <- Database.PostgreSQL.LibPQ.resultStatus result
+					let migrated =
+						DB.execute db "INSERT INTO \"MIGRATION\" (\"FILE\") VALUES (?)" (DB.Only f) >>= \case
+							1 -> loop fs
+							_ -> putStrLn "ERROR: unable modify migration record"
+					case status of
+						Database.PostgreSQL.LibPQ.CommandOk -> migrated
+						Database.PostgreSQL.LibPQ.TuplesOk -> migrated
+						_ -> putStrLn ("ERROR: fail to run migration: " ++ show status)
+		loop todo
 
 main :: IO ()
 main =
@@ -134,6 +166,11 @@ main =
 						do
 							putStrLn "Unknown role"
 							exitFailure
+			["migrate"] ->
+				do
+					db <- DB.connectPostgreSQL (BS.C8.pack dburl)
+					migrate db
+					DB.close db
 			_ ->
 				do
 					putStrLn "Commands:"
