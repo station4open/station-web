@@ -116,7 +116,7 @@ main =
 		hSetBuffering stdout LineBuffering
 		port <- fromMaybe default_port <$> (readMaybe =<<) <$> lookupEnv "PORT"
 		dburl <- fromMaybe "" <$> lookupEnv "DATABASE_URL"
-		log <- fromMaybe False <$> (readMaybe =<<) <$> lookupEnv "LOG"
+		log <- fromMaybe True <$> (readMaybe =<<) <$> lookupEnv "LOG"
 		putStrLn "Configuration"
 		putStrLn ("\tport: " ++ show port)
 		putStrLn ("\tdatabase: " ++ show dburl)
@@ -137,6 +137,7 @@ main =
 										Just user ->
 											Web.handle
 												Session.Record{
+													Session.log = log,
 													Session.database = db,
 													Session.user = user}
 									$ Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path)
