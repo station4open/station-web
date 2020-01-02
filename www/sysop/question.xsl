@@ -20,25 +20,22 @@
 				Back
 			</a>
 			<section>
-				<h1>Question</h1>
+				<h1>Question <xsl:value-of select='number'/></h1>
 				<form method='POST'>
 					<xsl:attribute name='action'>../question/<xsl:value-of select='identifier'/></xsl:attribute>
 					<input type='hidden' name='lesson'>
 						<xsl:attribute name='value'><xsl:value-of select='lesson'/></xsl:attribute>
 					</input>
-					<label>
-						Question
-						<div class='flex'>
-							<textarea name='text'><xsl:value-of select='text'/></textarea>
-						</div>
-					</label>
+					<div class='flex'>
+						<textarea name='text'><xsl:value-of select='text'/></textarea>
+					</div>
 					<label>Delete<input type='checkbox' name='delete'/></label>
 					<br/>
 					<button type='submit'>Modify</button>
 				</form>
 			</section>
 			<section>
-				<h1>Answers</h1>
+				<h1>Answer<xsl:if test='count(answers/answer)!=1'>s</xsl:if></h1>
 				<xsl:for-each select='answers/answer'>
 					<form method='POST'>
 						<xsl:attribute name='action'>../answer/<xsl:value-of select='identifier'/></xsl:attribute>

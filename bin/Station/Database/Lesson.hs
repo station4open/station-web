@@ -6,15 +6,16 @@ module Station.Database.Lesson (
 	get, list, delete, add, set, exchange
 ) where
 
-import Prelude (succ)
-import Data.Bool (Bool)
+import Prelude ()
+import Data.Bool (Bool (True, False))
 import Data.Eq ((==))
 import Data.Maybe (Maybe (Nothing, Just))
 import Data.List (map)
-import Data.Int (Int32)
+import Data.Int (Int16, Int32)
 import Data.String (String)
-import Control.Applicative ((<$>), (<*>))
-import Control.Monad (return, (>>=))
+import Data.Functor (fmap, (<$>))
+import Control.Applicative ((<*>))
+import Control.Monad (return)
 import Text.Show (Show, show)
 import Text.Read (Read, readsPrec)
 import System.IO (IO)
@@ -23,6 +24,7 @@ import qualified Database.PostgreSQL.Simple.ToField as DB
 import qualified Database.PostgreSQL.Simple.FromField as DB
 import qualified Database.PostgreSQL.Simple.ToRow as DB
 import qualified Database.PostgreSQL.Simple.FromRow as DB
+import qualified Database.PostgreSQL.Simple.Transaction as DB
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 
 import qualified Station.Database.Course as DB.Course
@@ -41,7 +43,7 @@ instance DB.ToField Identifier where
 instance DB.FromField Identifier where
 	fromField f x = Identifier <$> DB.fromField f x
 
-type Number = Int32
+type Number = Int16
 
 data Type =
 	Record{
@@ -92,29 +94,54 @@ list course_identifier db =
 
 delete :: Identifier -> DB.Connection -> IO Bool
 delete lesson_identifier db =
-	(1 ==)
-		<$>
-			DB.execute
-				db
-				[sql| DELETE FROM "LESSON" WHERE "IDENTIFIER"=? |]
-				(DB.Only lesson_identifier)
+	DB.withTransactionSerializable
+		db
+		(do
+			delete_result <-
+				DB.query
+					db
+					[sql| DELETE FROM "LESSON" WHERE "IDENTIFIER"=? RETURNING "COURSE" |]
+					(DB.Only lesson_identifier)
+					:: IO [DB.Only DB.Course.Identifier]
+			case delete_result of
+				DB.Only course_identifier : [] ->
+					do
+						_ <-
+							DB.execute
+								db
+								[sql|
+									WITH
+										"L" AS
+											(SELECT "IDENTIFIER", ROW_NUMBER() OVER(ORDER BY "NUMBER" ASC) AS "N"
+												FROM "LESSON"
+												WHERE "COURSE"=?)
+										UPDATE "LESSON"
+											SET "NUMBER"="L"."N"
+											FROM "L"
+											WHERE "LESSON"."IDENTIFIER"="L"."IDENTIFIER"
+												AND "LESSON"."NUMBER"<>"L"."N"|]
+								(DB.Only course_identifier)
+						return True
+				_ ->
+					do
+						DB.rollback db
+						return False)
 
 add :: DB.Course.Identifier -> String -> String -> DB.Connection -> IO (Maybe Identifier)
 add lesson_course lesson_title lesson_content db =
-	DB.query db [sql| SELECT COUNT(*)::INTEGER FROM "LESSON" WHERE "COURSE"=? |] (DB.Only lesson_course) >>= \case
-		[DB.Only n] ->
+	DB.withTransactionSerializable
+		db
+		(fmap
 			(\case
-				[DB.Only result] -> (Just result)
+				DB.Only result : [] -> (Just result)
 				_ -> Nothing)
-				<$>
-					DB.query
-						db
-						[sql|
-							INSERT INTO "LESSON"("COURSE","NUMBER","TITLE","CONTENT")
-								VALUES (?,?,?,?)
-								RETURNING "IDENTIFIER" |]
-						(lesson_course, succ n :: Number, lesson_title, lesson_content)
-		_ -> return Nothing
+			(DB.query
+				db
+				[sql|
+					INSERT INTO "LESSON"("COURSE","NUMBER","TITLE","CONTENT")
+						VALUES (?, (SELECT COUNT(*)+1 FROM "LESSON" WHERE "COURSE"=?), ?, ?)
+						RETURNING "IDENTIFIER" |]
+				(lesson_course, lesson_course, lesson_title, lesson_content)))
 
 set :: Type -> DB.Connection -> IO Bool
 set lesson db =

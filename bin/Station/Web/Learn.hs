@@ -108,6 +108,7 @@ handle_lesson session lesson_identifier request respond
 									(\ (question, answers) ->
 										XML.element "question" [] [
 											XML.element "identifier" [] [XML.text (show (DB.Question.identifier question))],
+											XML.element "number" [] [XML.text (show (DB.Question.number question))],
 											XML.element "text" [] [XML.text (DB.Question.text question)],
 											XML.element "mark" [] [XML.text (show (maximum (0 : map (DB.Answer.mark . fst) answers)))],
 											XML.element "answers" []

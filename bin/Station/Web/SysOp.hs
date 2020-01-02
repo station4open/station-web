@@ -274,6 +274,23 @@ handle_lesson_new db course request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
+handle_lesson_exchange :: DB.Type -> DB.Course.Identifier -> Wai.Application
+handle_lesson_exchange db course request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case (lookup "0" parameters, lookup "1" parameters) of
+				(Just a', Just b') ->
+					case (readMaybe (BS.U8.toString a'), readMaybe (BS.U8.toString b')) of
+						(Just a, Just b) ->
+							DB.Lesson.exchange a b db >>= \case
+								True -> HTTP.respond_303 ("../../course/" <> BS.U8.fromString (show course)) request respond
+								False -> HTTP.respond_409 "Fail to re-order" request respond
+						_ -> HTTP.respond_400 "Incorrect identifiers" request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
 handle_lesson :: Session.Type -> DB.Lesson.Identifier -> Wai.Application
 handle_lesson session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
@@ -296,6 +313,7 @@ handle_lesson session identifier request respond
 										(\ question ->
 											XML.element "question" [] [
 												XML.element "identifier" [] [XML.text (show (DB.Question.identifier question))],
+												XML.element "number" [] [XML.text (show (DB.Question.number question))],
 												XML.element "text" [] [XML.text (DB.Question.text question)]])
 										questions)]))
 						request
@@ -323,25 +341,8 @@ handle_lesson session identifier request respond
 								in
 									DB.Lesson.set new (Session.database session) >>= \case
 										True -> HTTP.respond_303 "" request respond
-										False -> HTTP.respond_404 request respond
+										False -> HTTP.respond_409 "Fail to modify" request respond
 						_ -> HTTP.respond_400 "Incorrect course or number" request respond
-				_ -> HTTP.respond_400 "Incorrect form field" request respond
-	| otherwise =
-		HTTP.respond_405 request respond
-
-handle_lesson_exchange :: DB.Type -> DB.Course.Identifier -> Wai.Application
-handle_lesson_exchange db course request respond
-	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
-		do
-			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-			case (lookup "0" parameters, lookup "1" parameters) of
-				(Just a', Just b') ->
-					case (readMaybe (BS.U8.toString a'), readMaybe (BS.U8.toString b')) of
-						(Just a, Just b) ->
-							DB.Lesson.exchange a b db >>= \case
-								True -> HTTP.respond_303 ("../../course/" <> BS.U8.fromString (show course)) request respond
-								False -> HTTP.respond_409 "Fail to re-numbering" request respond
-						_ -> HTTP.respond_400 "Incorrect identifiers" request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -362,6 +363,23 @@ handle_question_new db lesson request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
+handle_question_exchange :: DB.Type -> DB.Question.Identifier -> Wai.Application
+handle_question_exchange db lesson request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case (lookup "0" parameters, lookup "1" parameters) of
+				(Just a', Just b') ->
+					case (readMaybe (BS.U8.toString a'), readMaybe (BS.U8.toString b')) of
+						(Just a, Just b) ->
+							DB.Question.exchange a b db >>= \case
+								True -> HTTP.respond_303 ("../../lesson/" <> BS.U8.fromString (show lesson)) request respond
+								False -> HTTP.respond_409 "Fail to re-order" request respond
+						_ -> HTTP.respond_400 "Incorrect identifiers" request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
 handle_question :: Session.Type -> DB.Question.Identifier -> Wai.Application
 handle_question session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
@@ -376,6 +394,7 @@ handle_question session identifier request respond
 								Web.Tool.user_XML (Session.user session),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "lesson" [] [XML.text (show (DB.Question.lesson question))],
+								XML.element "number" [] [XML.text (show (DB.Question.number question))],
 								XML.element "text" [] [XML.text (DB.Question.text question)],
 								XML.element "answers" []
 									(map
@@ -396,20 +415,10 @@ handle_question session identifier request respond
 					do
 						_ <- DB.Question.delete identifier (Session.database session)
 						HTTP.respond_303 ("../lesson/" <> lesson) request respond
-				[Just lesson', Just text, Nothing] ->
-					case readMaybe (BS.U8.toString lesson') of
-						Just lesson ->
-							let
-								new =
-									DB.Question.Record{
-										DB.Question.identifier = identifier,
-										DB.Question.lesson = lesson,
-										DB.Question.text = BS.U8.toString text}
-								in
-									DB.Question.set new (Session.database session) >>= \case
-										True -> HTTP.respond_303 "" request respond
-										False -> HTTP.respond_404 request respond
-						_ -> HTTP.respond_400 "Incorrect lesson" request respond
+				[_, Just text, Nothing] ->
+					DB.Question.set identifier (BS.U8.toString text) (Session.database session) >>= \case
+						True -> HTTP.respond_303 "" request respond
+						False -> HTTP.respond_409 "Fail to modify" request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -482,17 +491,21 @@ handle session path next request respond =
 					case readMaybe (Data.Text.unpack course') of
 						Just course -> handle_lesson_new db course request respond
 						_ -> next request respond
-				["lesson", lesson'] ->
-					case readMaybe (Data.Text.unpack lesson') of
-						Just lesson -> handle_lesson session lesson request respond
-						_ -> next request respond
 				["lesson", "exchange", course'] ->
 					case readMaybe (Data.Text.unpack course') of
 						Just course -> handle_lesson_exchange db course request respond
 						_ -> next request respond
+				["lesson", lesson'] ->
+					case readMaybe (Data.Text.unpack lesson') of
+						Just lesson -> handle_lesson session lesson request respond
+						_ -> next request respond
 				["question", "new", lesson'] ->
 					case readMaybe (Data.Text.unpack lesson') of
 						Just lesson -> handle_question_new db lesson request respond
+						_ -> next request respond
+				["question", "exchange", lesson'] ->
+					case readMaybe (Data.Text.unpack lesson') of
+						Just lesson -> handle_question_exchange db lesson request respond
 						_ -> next request respond
 				["question", question'] ->
 					case readMaybe (Data.Text.unpack question') of

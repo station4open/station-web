@@ -63,12 +63,63 @@
 			</section>
 			<section>
 				<h1>Modify question</h1>
-				<xsl:for-each select='questions/question'>
-					<p>
-						[<a><xsl:attribute name='href'>../question/<xsl:value-of select='identifier'/></xsl:attribute>Edit</a>]
-						<xsl:value-of select='text'/>
-					</p>
-				</xsl:for-each>
+				<table>
+					<xsl:for-each select='questions/question'>
+						<tbody>
+							<tr>
+								<td>
+									<a>
+										<xsl:attribute name='href'>../question/<xsl:value-of select='identifier'/></xsl:attribute>
+										<xsl:value-of select='number'/>
+									</a>.
+								</td>
+								<td>
+									<xsl:if test='number>1'>
+										<form method='POST'>
+											<xsl:attribute name='action'>
+												../question/exchange/<xsl:value-of select='../../identifier'/>
+											</xsl:attribute>
+											<input type='hidden' name='0'>
+												<xsl:attribute name='value'>
+													<xsl:value-of select='identifier'/>
+												</xsl:attribute>
+											</input>
+											<input type='hidden' name='1'>
+												<xsl:attribute name='value'>
+													<xsl:value-of select='preceding-sibling::*[1]/identifier'/>
+												</xsl:attribute>
+											</input>
+											<button type='submit'>↑</button>
+										</form>
+									</xsl:if>
+								</td>
+								<td>
+									<xsl:if test='count(../question)>number'>
+										<form method='POST'>
+											<xsl:attribute name='action'>
+												../question/exchange/<xsl:value-of select='../../identifier'/>
+											</xsl:attribute>
+											<input type='hidden' name='0'>
+												<xsl:attribute name='value'>
+													<xsl:value-of select='identifier'/>
+												</xsl:attribute>
+											</input>
+											<input type='hidden' name='1'>
+												<xsl:attribute name='value'>
+													<xsl:value-of select='following-sibling::*[1]/identifier'/>
+												</xsl:attribute>
+											</input>
+											<button type='submit'>↓</button>
+										</form>
+									</xsl:if>
+								</td>
+								<td>
+									<xsl:value-of select='text'/>
+								</td>
+							</tr>
+						</tbody>
+					</xsl:for-each>
+				</table>
 			</section>
 		</body>
 	</html>

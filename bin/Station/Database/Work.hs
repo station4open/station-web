@@ -54,8 +54,8 @@ get user_name question_identifier db =
 				WHERE "WORK"."USER"=? AND "ANSWER"."QUESTION"=? |]
 		(user_name, question_identifier)
 
-delete' :: String -> DB.Lesson.Identifier -> DB.Connection -> IO ()
-delete' user_name lesson_identifier db =
+delete_ :: String -> DB.Lesson.Identifier -> DB.Connection -> IO ()
+delete_ user_name lesson_identifier db =
 	do
 		void
 			(DB.execute
@@ -86,14 +86,14 @@ delete' user_name lesson_identifier db =
 				(user_name, lesson_identifier))
 
 delete :: String -> DB.Lesson.Identifier -> DB.Connection -> IO ()
-delete user_name lesson_identifier db = DB.withTransactionSerializable db (delete' user_name lesson_identifier db)
+delete user_name lesson_identifier db = DB.withTransactionSerializable db (delete_ user_name lesson_identifier db)
 
 add :: String -> DB.Lesson.Identifier -> [DB.Answer.Identifier] -> DB.Connection -> IO ()
 add user_name lesson_identifier list_answer_identifier db =
 	DB.withTransactionSerializable
 		db
 		(do
-			delete' user_name lesson_identifier db
+			delete_ user_name lesson_identifier db
 			void
 				(DB.executeMany
 					db

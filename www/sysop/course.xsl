@@ -16,9 +16,7 @@
 		<body>
 			<xsl:call-template name='menubar'/>
 			<a>
-				<xsl:attribute name='href'>
-					../subject/<xsl:value-of select='subject'/>
-				</xsl:attribute>
+				<xsl:attribute name='href'>../subject/<xsl:value-of select='subject'/></xsl:attribute>
 				Back
 			</a>
 			<section>
@@ -26,17 +24,13 @@
 				<h2><xsl:value-of select='title'/></h2>
 				<form method='POST'>
 					<input type='hidden' name='subject'>
-						<xsl:attribute name='value'>
-							<xsl:value-of select='subject'/>
-						</xsl:attribute>
+						<xsl:attribute name='value'><xsl:value-of select='subject'/></xsl:attribute>
 					</input>
 					<label>
 						Title
 						<div class='flex'>
 							<input type='text' name='title'>
-								<xsl:attribute name='value'>
-									<xsl:value-of select='title'/>
-								</xsl:attribute>
+								<xsl:attribute name='value'><xsl:value-of select='title'/></xsl:attribute>
 							</input>
 						</div>
 					</label>
@@ -54,9 +48,7 @@
 			<section>
 				<h1>Create lesson</h1>
 				<form method='POST'>
-					<xsl:attribute name='action'>
-						../lesson/new/<xsl:value-of select='identifier'/>
-					</xsl:attribute>
+					<xsl:attribute name='action'>../lesson/new/<xsl:value-of select='identifier'/></xsl:attribute>
 					<label>
 						Title
 						<div class='flex'>
@@ -80,9 +72,7 @@
 							<tr>
 								<td>
 									<a>
-										<xsl:attribute name='href'>
-											../lesson/<xsl:value-of select='identifier'/>
-										</xsl:attribute>
+										<xsl:attribute name='href'>../lesson/<xsl:value-of select='identifier'/></xsl:attribute>
 										<xsl:value-of select='number'/>
 									</a>.
 								</td>
@@ -99,7 +89,7 @@
 											</input>
 											<input type='hidden' name='1'>
 												<xsl:attribute name='value'>
-													<xsl:value-of select='preceding-sibling::*[last()]/identifier'/>
+													<xsl:value-of select='preceding-sibling::*[1]/identifier'/>
 												</xsl:attribute>
 											</input>
 											<button type='submit'>↑</button>
