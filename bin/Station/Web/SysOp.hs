@@ -3,12 +3,12 @@ module Station.Web.SysOp (handle) where
 import Prelude ()
 import Data.Bool (Bool (True, False), otherwise)
 import Data.Eq ((==))
-import Data.Maybe (Maybe (Nothing, Just))
+import Data.Maybe (Maybe (Nothing, Just), isJust)
 import Data.Tuple (fst)
 import Data.Monoid ((<>))
 import Data.List (map, lookup)
 import Data.String (IsString)
-import Data.Function ((.), flip)
+import Data.Function (id, (.), flip)
 import Data.Functor ((<$>))
 import Control.Monad ((>>=), (=<<))
 import Text.Show (show)
@@ -50,7 +50,8 @@ handle_account session request respond
 								(\ user ->
 									XML.element
 										"user"
-										[("role", show (DB.User.role user)), ("mark", show (DB.User.mark user))]
+										((if DB.User.lock user then (("lock", "") :) else id)
+											[("role", show (DB.User.role user)), ("mark", show (DB.User.mark user))])
 										[XML.text (DB.User.name user)])
 								users)))
 				request
@@ -58,8 +59,8 @@ handle_account session request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-			case map (flip lookup parameters) ["user", "name", "role", "password", "mark", "delete"] of
-				[Nothing, Just name, Just role', Just password, Just mark', Nothing] ->
+			case map (flip lookup parameters) ["delete", "user", "name", "role", "password", "mark", "lock"] of
+				[Nothing, Nothing, Just name, Just role', Just password, Just mark', lock] ->
 					case (readMaybe (BS.U8.toString role'), readMaybe (BS.U8.toString mark')) of
 						(Just role, Just mark) ->
 							let new =
@@ -67,14 +68,15 @@ handle_account session request respond
 									DB.User.name = BS.U8.toString name,
 									DB.User.role = role,
 									DB.User.password = BS.U8.toString password,
-									DB.User.mark = mark}
+									DB.User.mark = mark,
+									DB.User.lock = isJust lock}
 								in redirect_result =<< DB.User.add new (Session.database session)
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
 								BS.C8.putStrLn role'
 								HTTP.respond_404 request respond
-				[Just user, Just name, Just role', Just password, Just mark', Nothing] ->
+				[Nothing, Just user, Just name, Just role', Just password, Just mark', lock] ->
 					case (readMaybe (BS.U8.toString role'), readMaybe (BS.U8.toString mark')) of
 						(Just role, Just mark) ->
 							let new =
@@ -82,14 +84,15 @@ handle_account session request respond
 									DB.User.name = BS.U8.toString name,
 									DB.User.role = role,
 									DB.User.password = BS.U8.toString password,
-									DB.User.mark = mark}
+									DB.User.mark = mark,
+									DB.User.lock = isJust lock}
 								in redirect_result =<< DB.User.set (BS.U8.toString user) new (Session.database session)
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
 								BS.C8.putStrLn role'
 								HTTP.respond_404 request respond
-				[Just user, _, _, _, _, Just _] ->
+				Just _ : Just user : _ ->
 					redirect_result =<< DB.User.delete (BS.U8.toString user) (Session.database session)
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =

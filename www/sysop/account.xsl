@@ -83,6 +83,14 @@
 								<input type='text' name='password'/>
 							</label>
 							<label>
+								Lock
+								<input type='checkbox' name='lock'>
+									<xsl:if test='@lock'>
+										<xsl:attribute name='checked'/>
+									</xsl:if>
+								</input>
+							</label>
+							<label>
 								Delete
 								<input type='checkbox' name='delete'/>
 							</label>

@@ -1,7 +1,7 @@
 module Main (main) where
 
 import Prelude (fromEnum)
-import Data.Bool (Bool (True, False))
+import Data.Bool (Bool (True, False), not, (&&))
 import Data.Maybe (Maybe (Nothing, Just), maybe, fromMaybe)
 import Data.List ((++), (\\), sort)
 import Data.Function (id, ($))
@@ -76,10 +76,11 @@ auth_check user' =
 				(maybe
 					False
 					(\ user ->
-						Crypto.Scrypt.verifyPass' (Crypto.Scrypt.Pass password)
-							$ Crypto.Scrypt.EncryptedPass
-							$ BS.C8.pack
-							$ DB.User.password user)
+						not (DB.User.lock user) &&
+							(Crypto.Scrypt.verifyPass' (Crypto.Scrypt.Pass password)
+								$ Crypto.Scrypt.EncryptedPass
+								$ BS.C8.pack
+								$ DB.User.password user))
 					user')
 		realm :: HttpAuth.AuthSettings
 		realm = Constant.auth_realm{HttpAuth.authIsProtected = protect}
