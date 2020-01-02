@@ -11,6 +11,7 @@
 		<head>
 			<title>SysOp: Course</title>
 			<link rel="stylesheet" type="text/css" href="../base.css"/>
+			<link rel="stylesheet" type="text/css" href="/base.css"/>
 			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
 		</head>
 		<body>
@@ -65,7 +66,7 @@
 				</form>
 			</section>
 			<section>
-				<h1>Modify existing lessons</h1>
+				<h1>Modify lesson</h1>
 				<table>
 					<xsl:for-each select='lessons/lesson'>
 						<tbody>

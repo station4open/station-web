@@ -10,6 +10,7 @@
 	<html>
 		<head>
 			<title>Station - Lesson</title>
+			<link rel="stylesheet" type="text/css" href="/base.css"/>
 			<script src='../lesson.js' type='application/ecmascript'></script>
 		</head>
 		<body>

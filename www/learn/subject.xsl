@@ -10,6 +10,7 @@
 	<html>
 		<head>
 			<title>Station - Subject</title>
+			<link rel="stylesheet" type="text/css" href="/base.css"/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
@@ -23,7 +24,7 @@
 						<xsl:value-of select='title'/>
 					</a>
 				</h2>
-				<p><xsl:value-of select='description'/></p>
+				<pre><xsl:value-of select='description'/></pre>
 			</xsl:for-each>
 		</body>
 	</html>

@@ -11,6 +11,7 @@
 		<head>
 			<title>SysOp: Lesson</title>
 			<link rel="stylesheet" type="text/css" href="../base.css"/>
+			<link rel="stylesheet" type="text/css" href="/base.css"/>
 			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
 		</head>
 		<body>

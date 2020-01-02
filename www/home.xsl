@@ -10,6 +10,7 @@
 	<html>
 		<head>
 			<title>Station</title>
+			<link rel="stylesheet" type="text/css" href="/base.css"/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
@@ -22,7 +23,7 @@
 					this site.
 				</p>
 			</xsl:if>
-			<h1>Subjects</h1>
+			<h1>Subject<xsl:if test='count(subjects/subject)!=1'>s</xsl:if></h1>
 			<xsl:for-each select='subjects/subject'>
 				<h2>
 					<a>
@@ -30,7 +31,7 @@
 						<xsl:value-of select='title'/>
 					</a>
 				</h2>
-				<p><xsl:value-of select='description'/></p>
+				<pre><xsl:value-of select='description'/></pre>
 			</xsl:for-each>
 		</body>
 	</html>

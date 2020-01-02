@@ -10,6 +10,7 @@
 	<html>
 		<head>
 			<title>Station - Course</title>
+			<link rel="stylesheet" type="text/css" href="/base.css"/>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>

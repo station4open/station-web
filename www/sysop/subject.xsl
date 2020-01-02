@@ -11,6 +11,7 @@
 		<head>
 			<title>SysOp: Subject</title>
 			<link rel="stylesheet" type="text/css" href="../base.css"/>
+			<link rel="stylesheet" type="text/css" href="/base.css"/>
 			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
 		</head>
 		<body>
@@ -67,9 +68,7 @@
 							<xsl:value-of select='title'/>
 						</a>
 					</h2>
-					<p>
-							<xsl:value-of select='description'/>
-					</p>
+					<pre><xsl:value-of select='description'/></pre>
 				</xsl:for-each>
 			</section>
 		</body>
