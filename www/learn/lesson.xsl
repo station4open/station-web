@@ -23,9 +23,10 @@
 			<pre><xsl:value-of select='content'/></pre>
 			<h1>Questions</h1>
 			<form method='POST'>
-				<ul>
+				<ol>
 					<xsl:for-each select='questions/question'>
 						<li>
+							<xsl:attribute name='value'><xsl:value-of select='number'/></xsl:attribute>
 							<xsl:value-of select='text'/>
 							<fieldset>
 								<legend>
@@ -49,8 +50,8 @@
 							</fieldset>
 						</li>
 					</xsl:for-each>
-					<input type='submit' value='Submit'/>
-				</ul>
+				</ol>
+				<input type='submit' value='Submit'/>
 			</form>
 		</body>
 	</html>
