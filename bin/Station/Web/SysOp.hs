@@ -70,7 +70,7 @@ handle_account session request respond
 									DB.User.password = BS.U8.toString password,
 									DB.User.mark = mark,
 									DB.User.lock = isJust lock}
-								in redirect_result =<< DB.User.add new (Session.database session)
+								in redirected =<< DB.User.add new (Session.database session)
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
@@ -86,20 +86,20 @@ handle_account session request respond
 									DB.User.password = BS.U8.toString password,
 									DB.User.mark = mark,
 									DB.User.lock = isJust lock}
-								in redirect_result =<< DB.User.set (BS.U8.toString user) new (Session.database session)
+								in redirected =<< DB.User.set (BS.U8.toString user) new (Session.database session)
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
 								BS.C8.putStrLn role'
 								HTTP.respond_404 request respond
 				Just _ : Just user : _ ->
-					redirect_result =<< DB.User.delete (BS.U8.toString user) (Session.database session)
+					redirected =<< DB.User.delete (BS.U8.toString user) (Session.database session)
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 	where
-		redirect_result True = HTTP.respond_303 (path_prefix <> "account") request respond
-		redirect_result False = HTTP.respond_404 request respond
+		redirected True = HTTP.respond_303 (path_prefix <> "account") request respond
+		redirected False = HTTP.respond_404 request respond
 
 handle_subjects :: Session.Type -> Wai.Application
 handle_subjects session request respond
@@ -184,9 +184,9 @@ handle_subject session identifier request respond
 									DB.Subject.identifier = identifier,
 									DB.Subject.title = title,
 									DB.Subject.description = description}
-							redirect_result True = HTTP.respond_303 "" request respond
-							redirect_result False = HTTP.respond_404 request respond
-							in redirect_result =<< DB.Subject.set subject (Session.database session)
+							redirected True = HTTP.respond_303 "" request respond
+							redirected False = HTTP.respond_404 request respond
+							in redirected =<< DB.Subject.set subject (Session.database session)
 					_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond

@@ -97,13 +97,13 @@ delete lesson_identifier db =
 	DB.withTransactionSerializable
 		db
 		(do
-			delete_result <-
+			deleted <-
 				DB.query
 					db
 					[sql| DELETE FROM "LESSON" WHERE "IDENTIFIER"=? RETURNING "COURSE" |]
 					(DB.Only lesson_identifier)
 					:: IO [DB.Only DB.Course.Identifier]
-			case delete_result of
+			case deleted of
 				DB.Only course_identifier : [] ->
 					do
 						_ <-

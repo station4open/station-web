@@ -49,5 +49,4 @@ executable station
     wai-extra,
     wai-app-static,
     warp,
-    postgresql-libpq,
     postgresql-simple

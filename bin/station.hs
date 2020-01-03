@@ -21,9 +21,8 @@ import qualified Network.Wai as Wai
 import qualified Network.Wai.Middleware.HttpAuth as HttpAuth
 import qualified Network.Wai.Application.Static as Wai.Static
 import qualified Network.Wai.Handler.Warp as Warp
-import qualified Database.PostgreSQL.LibPQ
 import qualified Database.PostgreSQL.Simple as DB
-import qualified Database.PostgreSQL.Simple.Internal as DB (exec)
+import qualified Database.PostgreSQL.Simple.Types as DB (Query (Query))
 
 import qualified Station.Constant as Constant
 import qualified Station.Constant.Role as Constant.Role
@@ -99,16 +98,11 @@ migrate db =
 				do
 					putStrLn ("migrate: " ++ f)
 					sql <- BS.readFile (migration_path </> f)
-					result <- DB.exec db sql
-					status <- Database.PostgreSQL.LibPQ.resultStatus result
-					let migrated =
-						DB.execute db "INSERT INTO \"MIGRATION\" (\"FILE\") VALUES (?)" (DB.Only f) >>= \case
-							1 -> loop fs
-							_ -> putStrLn "ERROR: unable modify migration record"
-					case status of
-						Database.PostgreSQL.LibPQ.CommandOk -> migrated
-						Database.PostgreSQL.LibPQ.TuplesOk -> migrated
-						_ -> putStrLn ("ERROR: fail to run migration: " ++ show status)
+					_ <- DB.execute_ db (DB.Query sql)
+					inserted <- DB.execute db "INSERT INTO \"MIGRATION\" (\"FILE\") VALUES (?)" (DB.Only f)
+					case inserted of
+						1 -> loop fs
+						_ -> putStrLn "ERROR: unable modify migration record"
 		loop todo
 
 main :: IO ()
