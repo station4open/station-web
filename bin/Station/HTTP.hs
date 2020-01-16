@@ -8,6 +8,7 @@ import Prelude ()
 import Data.Bool (Bool (True, False))
 import Data.Maybe (Maybe, maybe)
 import Data.Tuple (fst)
+import Data.Monoid ((<>))
 import Data.List ((++), lookup)
 import Data.String (String, fromString)
 import Data.Function ((.))
@@ -84,7 +85,19 @@ respond_422 message _ respond =
 
 respond_redirect :: HTTP.Status -> BS.L.ByteString -> BS.ByteString -> Wai.Application
 respond_redirect status text location _ respond =
-	respond (Wai.responseLBS status [("Content-Type", "text/plain; charset=ASCII"), ("Location", location)] text)
+	let
+		location' = BS.L.fromStrict location
+		content =
+			"<html xmlns='http://www.w3.org/1999/xhtml'><head><meta http-equiv='refresh' content='0; url="
+				<> location'
+				<> "' /></head><body><script type='javascript'>location.href='"
+				<> location'
+				<> "'</script><a href='"
+				<> location'
+				<> "'>"
+				<> text
+				<> "</body></html>"
+		in respond (Wai.responseLBS status [("Content-Type", "application/xhtml+xml"), ("Location", location)] content)
 
 respond_301 :: BS.ByteString -> Wai.Application
 respond_301 = respond_redirect HTTP.status301 "MOVED PERMANENTLY"

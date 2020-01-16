@@ -184,7 +184,7 @@ handle_subject session identifier request respond
 									DB.Subject.identifier = identifier,
 									DB.Subject.title = title,
 									DB.Subject.description = description}
-							redirected True = HTTP.respond_303 "" request respond
+							redirected True = HTTP.respond_303 (Wai.rawPathInfo request) request respond
 							redirected False = HTTP.respond_404 request respond
 							in redirected =<< DB.Subject.set subject (Session.database session)
 					_ -> HTTP.respond_400 "Incorrect form field" request respond
@@ -254,7 +254,7 @@ handle_course session identifier request respond
 										DB.Course.description = BS.U8.toString description}
 								in
 									DB.Course.set new (Session.database session) >>= \case
-										True -> HTTP.respond_303 "" request respond
+										True -> HTTP.respond_303 (Wai.rawPathInfo request) request respond
 										False -> HTTP.respond_404 request respond
 						_ -> HTTP.respond_400 "Incorrect subject" request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
@@ -343,7 +343,7 @@ handle_lesson session identifier request respond
 										DB.Lesson.content = BS.U8.toString content}
 								in
 									DB.Lesson.set new (Session.database session) >>= \case
-										True -> HTTP.respond_303 "" request respond
+										True -> HTTP.respond_303 (Wai.rawPathInfo request) request respond
 										False -> HTTP.respond_409 "Fail to modify" request respond
 						_ -> HTTP.respond_400 "Incorrect course or number" request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
@@ -420,7 +420,7 @@ handle_question session identifier request respond
 						HTTP.respond_303 ("../lesson/" <> lesson) request respond
 				[_, Just text, Nothing] ->
 					DB.Question.set identifier (BS.U8.toString text) (Session.database session) >>= \case
-						True -> HTTP.respond_303 "" request respond
+						True -> HTTP.respond_303 (Wai.rawPathInfo request) request respond
 						False -> HTTP.respond_409 "Fail to modify" request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =

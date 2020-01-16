@@ -134,7 +134,7 @@ handle_lesson session lesson_identifier request respond
 				lesson_identifier
 				(catMaybes (map (readMaybe . BS.U8.toString . snd) parameters))
 				(Session.database session)
-			HTTP.respond_303 "" request respond
+			HTTP.respond_303 (Wai.rawPathInfo request) request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
