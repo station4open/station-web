@@ -22,31 +22,27 @@ import qualified Station.Database.Subject as DB.Subject
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Session as Session
 import qualified Station.Web.Tool as Web.Tool
-import qualified Station.Web.Bin as Web.Bin
 import qualified Station.Web.SysOp as Web.SysOp
 import qualified Station.Web.Learn as Web.Learn
 
 handle_account :: Session.Type -> Wai.Application
 handle_account session request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		case HTTP.auth_user request of
-			Just user_name' ->
-				let
-					user_name = BS.U8.toString user_name'
-					xml = XML.element "account" [("name", user_name)] [Web.Tool.user_XML (Session.user session)]
-					body = XML.xslt "account.xsl" xml
-					in HTTP.respond_XML body request respond
-			_ -> HTTP.respond_403 request respond
+		let
+			user_name = DB.User.name (Session.user session)
+			xml = XML.element "account" [("name", user_name)] [Web.Tool.user_XML (Session.user session)]
+			body = XML.xslt "account.xsl" xml
+			in HTTP.respond_XML body request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
-			case (HTTP.auth_user request, lookup "password" parameters) of
-				(Just username, Just password)
+			case lookup "password" parameters of
+				Just password
 					| BS.length password > 0 ->
 						do
 							ok <-
 								DB.User.set_password
-									(BS.U8.toString username)
+									(DB.User.name (Session.user session))
 									(BS.U8.toString password)
 									(Session.database session)
 							if ok
@@ -82,7 +78,6 @@ handle_home session request respond
 handle :: Session.Type -> Wai.Middleware
 handle session next request respond =
 	case Wai.pathInfo request of
-		"bin" : path -> Web.Bin.handle path next request respond
 		"sysop" : path -> Web.SysOp.handle session path next request respond
 		["home"] -> handle_home session request respond
 		["account"] -> handle_account session request respond

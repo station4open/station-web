@@ -1,12 +1,12 @@
 module Station.HTTP (
-	log, respond_200, respond_400, respond_401, respond_403, respond_404, respond_405, respond_409, respond_422,
-	respond_redirect, respond_301, respond_303, respond_XML,
-	auth_user
+	log, respond_200, respond_500, respond_400, respond_401, respond_403, respond_404, respond_405, respond_409, respond_422,
+	respond_redirect, respond_301, respond_303_headers, respond_303, respond_XML,
+	cookies
 ) where
 
 import Prelude ()
 import Data.Bool (Bool (True, False))
-import Data.Maybe (Maybe, maybe)
+import Data.Maybe (Maybe (Nothing, Just), maybe)
 import Data.Tuple (fst)
 import Data.Monoid ((<>))
 import Data.List ((++), lookup)
@@ -25,6 +25,7 @@ import qualified Data.ByteString.Lazy.UTF8 as BS.L.U8
 import qualified Network.HTTP.Types as HTTP
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Middleware.HttpAuth as HttpAuth
+import qualified Web.Cookie as Cookie
 
 log :: Bool -> Wai.Middleware
 log False next request respond = next request respond
@@ -48,6 +49,10 @@ log True  next request respond =
 respond_200 :: Wai.Application
 respond_200 _ respond =
 	respond (Wai.responseLBS HTTP.status200 [("Content-Type", "text/plain; charset=ASCII")] "OK")
+
+respond_500 :: String -> Wai.Application
+respond_500 message _ respond =
+	respond (Wai.responseLBS HTTP.status500 [("Content-Type", "text/plain; charset=ASCII")] (BS.L.U8.fromString message))
 
 respond_400 :: String -> Wai.Application
 respond_400 message _ respond =
@@ -83,8 +88,8 @@ respond_422 :: String -> Wai.Application
 respond_422 message _ respond =
 	respond (Wai.responseLBS HTTP.status422 [("Content-Type", "text/plain; charset=ASCII")] (BS.L.U8.fromString message))
 
-respond_redirect :: HTTP.Status -> BS.L.ByteString -> BS.ByteString -> Wai.Application
-respond_redirect status text location _ respond =
+respond_redirect :: HTTP.Status -> BS.L.ByteString -> HTTP.ResponseHeaders -> BS.ByteString -> Wai.Application
+respond_redirect status text headers location _ respond =
 	let
 		location' = BS.L.fromStrict location
 		content =
@@ -97,13 +102,21 @@ respond_redirect status text location _ respond =
 				<> "'>"
 				<> text
 				<> "</body></html>"
-		in respond (Wai.responseLBS status [("Content-Type", "application/xhtml+xml"), ("Location", location)] content)
+		in
+		respond
+			(Wai.responseLBS
+				status
+				(("Content-Type", "application/xhtml+xml") : ("Location", location) : headers)
+				content)
 
 respond_301 :: BS.ByteString -> Wai.Application
-respond_301 = respond_redirect HTTP.status301 "MOVED PERMANENTLY"
+respond_301 = respond_redirect HTTP.status301 "MOVED PERMANENTLY" []
+
+respond_303_headers :: HTTP.ResponseHeaders -> BS.ByteString -> Wai.Application
+respond_303_headers = respond_redirect HTTP.status303 "SEE OTHER"
 
 respond_303 :: BS.ByteString -> Wai.Application
-respond_303 = respond_redirect HTTP.status303 "SEE OTHER"
+respond_303 = respond_303_headers []
 
 respond_XML :: String -> Wai.Application
 respond_XML body _ respond =
@@ -113,5 +126,8 @@ respond_XML body _ respond =
 			[("Content-Type", "text/xml; charset=UTF-8")]
 			(BS.L.U8.fromString body))
 
-auth_user :: Wai.Request -> Maybe BS.ByteString
-auth_user request = fst <$> (HttpAuth.extractBasicAuth =<< lookup HTTP.hAuthorization (Wai.requestHeaders request))
+cookies :: Wai.Request -> Cookie.Cookies
+cookies request =
+	case lookup HTTP.hCookie (Wai.requestHeaders request) of
+		Nothing -> []
+		Just bytestring -> Cookie.parseCookies bytestring

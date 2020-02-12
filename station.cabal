@@ -21,6 +21,7 @@ executable station
     Station.XML
     Station.Database
     Station.Database.User
+    Station.Database.Session
     Station.Database.Subject
     Station.Database.Course
     Station.Database.Lesson
@@ -31,12 +32,13 @@ executable station
     Station.Web
     Station.Web.Tool
     Station.Web.Session
-    Station.Web.Bin
+    Station.Web.Public
     Station.Web.SysOp
     Station.Web.Learn
   build-depends:
     base,
     bytestring,
+    binary,
     utf8-string,
     filepath,
     directory,
@@ -45,6 +47,7 @@ executable station
     scrypt,
     text,
     http-types,
+    cookie,
     wai,
     wai-extra,
     wai-app-static,

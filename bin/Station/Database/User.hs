@@ -2,20 +2,20 @@
 
 module Station.Database.User (
 	Type (Record, name, password, role, mark, lock),
-	get, list, delete, add, set, set_password
+	get, list, check_password, delete, hash_password, add, set, set_password
 ) where
 
 import Prelude (fromEnum, toEnum)
-import Data.Bool (Bool)
+import Data.Bool (Bool, not, (&&))
 import Data.Eq ((==))
-import Data.List (any)
+import Data.List (filter)
 import Data.String (String)
-import Data.Function ((.))
-import Control.Applicative ((<$>), (<*>))
+import Data.Functor (fmap, (<$>))
+import Control.Applicative ((<*>))
 import Control.Monad (return)
 import System.IO (IO)
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.UTF8 as BS.U8
+import qualified Data.ByteString.Char8 as BS.C8
 import qualified Crypto.Scrypt
 import qualified Database.PostgreSQL.Simple as DB
 import qualified Database.PostgreSQL.Simple.ToField as DB
@@ -56,12 +56,26 @@ get user_name db =
 list :: DB.Connection -> IO [Type]
 list db = DB.query_ db [sql| SELECT "NAME","PASSWORD","ROLE","MARK","LOCK" FROM "USER" |]
 
-hash_password :: String -> IO BS.ByteString
-hash_password word =
-	Crypto.Scrypt.getEncryptedPass <$> Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.U8.fromString word))
+check_password :: String -> BS.ByteString -> DB.Connection -> IO [Type]
+check_password user_name word db =
+	fmap
+		(filter
+			(\ user ->
+				(&&)
+					(not (lock user))
+					(Crypto.Scrypt.verifyPass'
+						(Crypto.Scrypt.Pass word)
+						(Crypto.Scrypt.EncryptedPass (BS.C8.pack (password user))))))
+		(get user_name db)
 
 delete :: String -> DB.Connection -> IO Bool
-delete user db = (1 ==) <$> DB.execute db [sql| DELETE FROM "USER" WHERE "NAME"=? |] (DB.Only user)
+delete user db = fmap (1 ==) (DB.execute db [sql| DELETE FROM "USER" WHERE "NAME"=? |] (DB.Only user))
+
+hash_password :: String -> IO BS.ByteString
+hash_password word =
+	fmap
+		Crypto.Scrypt.getEncryptedPass
+		(Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.C8.pack word)))
 
 add :: Type -> DB.Connection -> IO Bool
 add user db =

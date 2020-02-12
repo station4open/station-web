@@ -16,7 +16,7 @@
 			<form method='POST'>
 				<label>
 					New password
-					<input type='text' name='password'/>
+					<input type='password' name='password'/>
 				</label>
 				<button type='submit'>Change</button>
 			</form>

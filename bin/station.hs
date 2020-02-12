@@ -1,9 +1,9 @@
 module Main (main) where
 
 import Prelude (fromEnum)
-import Data.Bool (Bool (True, False), not, (&&))
-import Data.Maybe (Maybe (Nothing, Just), maybe, fromMaybe)
-import Data.List ((++), (\\), sort)
+import Data.Bool (Bool (True))
+import Data.Maybe (Maybe (Nothing, Just), fromMaybe)
+import Data.List ((++), (\\), lookup, sort)
 import Data.Function (id, ($))
 import Data.Functor ((<$>))
 import Control.Monad (return, (>>=), (=<<))
@@ -18,7 +18,6 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS.C8
 import qualified Crypto.Scrypt
 import qualified Network.Wai as Wai
-import qualified Network.Wai.Middleware.HttpAuth as HttpAuth
 import qualified Network.Wai.Application.Static as Wai.Static
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified Database.PostgreSQL.Simple as DB
@@ -27,8 +26,10 @@ import qualified Database.PostgreSQL.Simple.Types as DB (Query (Query))
 import qualified Station.Constant as Constant
 import qualified Station.Constant.Role as Constant.Role
 import qualified Station.Database.User as DB.User
+import qualified Station.Database.Session as DB.Session
 import qualified Station.HTTP as HTTP
 import qualified Station.Web as Web
+import qualified Station.Web.Public as Public
 import qualified Station.Web.Session as Session
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}
@@ -51,45 +52,20 @@ handle_home next request =
 		_ -> next request
 
 get_user :: DB.Connection -> Wai.Request -> IO (Maybe DB.User.Type)
-get_user db request =
-	case HTTP.auth_user request of
+get_user database request =
+	case lookup Constant.session (HTTP.cookies request) of
 		Nothing -> return Nothing
-		Just name ->
-			DB.User.get (BS.C8.unpack name) db >>= \case
-				[user] -> return (Just user)
-				_ -> return Nothing
-
-auth_check :: Maybe DB.User.Type -> Wai.Middleware
-auth_check user' =
-	let
-		protect :: Wai.Request -> IO Bool
-		protect request =
-			case Wai.pathInfo request of
-				"bin" : "logout" : [] -> return False
-				"public" : _ : _ -> return False
-				"favicon.ico" : [] -> return False
-				_ -> return True
-		check :: HttpAuth.CheckCreds
-		check _ password =
-			return
-				(maybe
-					False
-					(\ user ->
-						not (DB.User.lock user) &&
-							(Crypto.Scrypt.verifyPass' (Crypto.Scrypt.Pass password)
-								$ Crypto.Scrypt.EncryptedPass
-								$ BS.C8.pack
-								$ DB.User.password user))
-					user')
-		realm :: HttpAuth.AuthSettings
-		realm = Constant.auth_realm{HttpAuth.authIsProtected = protect}
-		in HttpAuth.basicAuth check realm
+		Just token ->
+			(\case
+				session : _ -> Just (DB.Session.user session)
+				_ -> Nothing)
+				<$> DB.Session.get (BS.C8.unpack token) database
 
 migrate :: DB.Connection -> IO ()
-migrate db =
+migrate database =
 	do
 		files <- listDirectory migration_path
-		only_done <- DB.query_ db "SELECT \"FILE\" FROM \"MIGRATION\" ORDER BY \"FILE\""
+		only_done <- DB.query_ database "SELECT \"FILE\" FROM \"MIGRATION\" ORDER BY \"FILE\""
 		let
 			done = DB.fromOnly <$> only_done
 			todo = sort (files \\ done)
@@ -98,8 +74,8 @@ migrate db =
 				do
 					putStrLn ("migrate: " ++ f)
 					sql <- BS.readFile (migration_path </> f)
-					_ <- DB.execute_ db (DB.Query sql)
-					inserted <- DB.execute db "INSERT INTO \"MIGRATION\" (\"FILE\") VALUES (?)" (DB.Only f)
+					_ <- DB.execute_ database (DB.Query sql)
+					inserted <- DB.execute database "INSERT INTO \"MIGRATION\" (\"FILE\") VALUES (?)" (DB.Only f)
 					case inserted of
 						1 -> loop fs
 						_ -> putStrLn "ERROR: unable modify migration record"
@@ -119,34 +95,33 @@ main =
 		getArgs >>= \case
 			[] ->
 				do
-					db <- DB.connectPostgreSQL (BS.C8.pack dburl)
+					database <- DB.connectPostgreSQL (BS.C8.pack dburl)
 					let handle request respond =
 						do
-							user' <- get_user db request
-							let application =
-								HTTP.log log
-									$ handle_home
-									$ auth_check user'
-									$ case user' of
-										Nothing -> id
-										Just user ->
-											Web.handle
-												Session.Record{
-													Session.log = log,
-													Session.database = db,
-													Session.user = user}
-									$ Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path)
-							application request respond
+							user' <- get_user database request
+							(HTTP.log log
+								$ handle_home
+								$ Public.handle database
+								$ case user' of
+									Nothing -> id
+									Just user ->
+										Web.handle
+											Session.Record{
+												Session.log = log,
+												Session.database = database,
+												Session.user = user}
+								$ Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path))
+								request respond
 					Warp.run port handle
 			["adduser", username@(_:_), password@(_:_), role's@(_:_)] ->
 				case readMaybe role's of
 					Just role ->
 						do
-							db <- DB.connectPostgreSQL (BS.C8.pack dburl)
+							database <- DB.connectPostgreSQL (BS.C8.pack dburl)
 							encrypted <- Crypto.Scrypt.encryptPassIO' (Crypto.Scrypt.Pass (BS.C8.pack password))
 							n <-
 								DB.execute
-									db
+									database
 									"INSERT INTO \"USER\"(\"NAME\",\"PASSWORD\") VALUES(?,?,?)"
 									(username, Crypto.Scrypt.getEncryptedPass encrypted, fromEnum (role :: Constant.Role.Type))
 							case n of
@@ -164,9 +139,9 @@ main =
 							exitFailure
 			["migrate"] ->
 				do
-					db <- DB.connectPostgreSQL (BS.C8.pack dburl)
-					migrate db
-					DB.close db
+					database <- DB.connectPostgreSQL (BS.C8.pack dburl)
+					migrate database
+					DB.close database
 			_ ->
 				do
 					putStrLn "Commands:"

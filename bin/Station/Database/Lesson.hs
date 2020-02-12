@@ -129,19 +129,17 @@ delete lesson_identifier db =
 
 add :: DB.Course.Identifier -> String -> String -> DB.Connection -> IO (Maybe Identifier)
 add lesson_course lesson_title lesson_content db =
-	DB.withTransactionSerializable
-		db
-		(fmap
-			(\case
-				DB.Only result : [] -> (Just result)
-				_ -> Nothing)
-			(DB.query
-				db
-				[sql|
-					INSERT INTO "LESSON"("COURSE","NUMBER","TITLE","CONTENT")
-						VALUES (?, (SELECT COUNT(*)+1 FROM "LESSON" WHERE "COURSE"=?), ?, ?)
-						RETURNING "IDENTIFIER" |]
-				(lesson_course, lesson_course, lesson_title, lesson_content)))
+	fmap
+		(\case
+			DB.Only result : [] -> (Just result)
+			_ -> Nothing)
+		(DB.query
+			db
+			[sql|
+				INSERT INTO "LESSON"("COURSE","NUMBER","TITLE","CONTENT")
+					VALUES (?, (SELECT COUNT(*)+1 FROM "LESSON" WHERE "COURSE"=?), ?, ?)
+					RETURNING "IDENTIFIER" |]
+			(lesson_course, lesson_course, lesson_title, lesson_content))
 
 set :: Type -> DB.Connection -> IO Bool
 set lesson db =
