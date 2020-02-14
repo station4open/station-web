@@ -103,7 +103,10 @@ main =
 								$ handle_home
 								$ Public.handle database
 								$ case user' of
-									Nothing -> id
+									Nothing ->
+										case Wai.pathInfo request of
+											"public" : _ -> id
+											_ -> \ _ -> HTTP.respond_303 Constant.public_home
 									Just user ->
 										Web.handle
 											Session.Record{

@@ -1,7 +1,7 @@
 module Station.HTTP (
 	log, respond_200, respond_500, respond_400, respond_401, respond_403, respond_404, respond_405, respond_409, respond_422,
 	respond_redirect, respond_301, respond_303_headers, respond_303, respond_XML,
-	cookies
+	cookies, set_cookie_header
 ) where
 
 import Prelude ()
@@ -12,7 +12,6 @@ import Data.Monoid ((<>))
 import Data.List ((++), lookup)
 import Data.String (String, fromString)
 import Data.Function ((.))
-import Data.Functor ((<$>))
 import Control.Monad ((=<<))
 import Text.Show (show)
 import Data.Time (getZonedTime, formatTime, defaultTimeLocale)
@@ -22,7 +21,9 @@ import qualified Data.ByteString.Char8 as BS.C8
 import qualified Data.ByteString.UTF8 as BS.U8
 import qualified Data.ByteString.Lazy as BS.L
 import qualified Data.ByteString.Lazy.UTF8 as BS.L.U8
+import qualified Data.Binary.Builder as BS.Builder
 import qualified Network.HTTP.Types as HTTP
+import qualified Network.HTTP.Types.Header
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Middleware.HttpAuth as HttpAuth
 import qualified Web.Cookie as Cookie
@@ -131,3 +132,9 @@ cookies request =
 	case lookup HTTP.hCookie (Wai.requestHeaders request) of
 		Nothing -> []
 		Just bytestring -> Cookie.parseCookies bytestring
+
+set_cookie_header :: Cookie.SetCookie -> Network.HTTP.Types.Header.Header
+set_cookie_header set_cookie =
+	(
+		Network.HTTP.Types.Header.hSetCookie,
+		(BS.L.toStrict (BS.Builder.toLazyByteString (Cookie.renderSetCookie set_cookie))))

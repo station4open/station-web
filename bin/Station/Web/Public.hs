@@ -1,23 +1,19 @@
 module Station.Web.Public (handle) where
 
 import Prelude ()
-import Data.Bool (otherwise)
-import Data.Eq ((==), (/=))
-import Data.Maybe (Maybe (Just))
+import Data.Bool (Bool (True), otherwise)
+import Data.Eq ((==))
+import Data.Maybe (Maybe (Nothing, Just))
 import Data.Tuple (fst)
 import Data.List (lookup)
 import Data.Functor ((<$>))
 import Control.Monad ((=<<))
 import qualified Data.ByteString.Char8 as BS.C8
 import qualified Data.ByteString.UTF8 as BS.U8
-import qualified Data.ByteString.Lazy as BS.L
-import qualified Data.Binary.Builder as BS.Builder
 import Data.Time.Clock (secondsToDiffTime)
 import qualified Network.HTTP.Types
-import qualified Network.HTTP.Types.Header
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Parse as Wai.Parse
-import qualified Network.Wai.Middleware.HttpAuth as HttpAuth
 import qualified Web.Cookie as Cookie
 
 import qualified Station.Constant as Constant
@@ -38,17 +34,19 @@ handle_login database request respond
 						user : _ ->
 							(\case
 								session : _ ->
-									do
-										let
-											cookie =
+									HTTP.respond_303_headers
+										[
+											HTTP.set_cookie_header
 												Cookie.defaultSetCookie{
 													Cookie.setCookieName = Constant.session,
 													Cookie.setCookieValue = BS.C8.pack session,
 													Cookie.setCookiePath = Just "/",
-													Cookie.setCookieMaxAge = Just (secondsToDiffTime Constant.session_age)}
-											setCookie = BS.L.toStrict (BS.Builder.toLazyByteString (Cookie.renderSetCookie cookie))
-											headers = [( Network.HTTP.Types.Header.hSetCookie, setCookie)]
-										HTTP.respond_303_headers headers Constant.private_home request respond
+													Cookie.setCookieMaxAge = Just (secondsToDiffTime Constant.session_age),
+													Cookie.setCookieHttpOnly = True,
+													Cookie.setCookieSameSite = Just Cookie.sameSiteStrict}]
+										Constant.private_home
+										request
+										respond
 								_ -> HTTP.respond_500 "Cannot create session" request respond)
 								=<< DB.Session.add user database)
 						=<< DB.User.check_password (BS.U8.toString username') password' database
@@ -57,13 +55,22 @@ handle_login database request respond
 		HTTP.respond_405 request respond
 
 handle_logout :: DB.Type -> Wai.Application
-handle_logout _database request respond
-	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
-		case HttpAuth.extractBasicAuth =<< lookup Network.HTTP.Types.hAuthorization (Wai.requestHeaders request) of
-			Just auth
-				| fst auth /= "" ->
-					HTTP.respond_401 "Empty user name to logout" request respond
-			_ -> HTTP.respond_303 Constant.public_home request respond
+handle_logout database request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
+		case lookup Constant.session (HTTP.cookies request) of
+			Nothing -> HTTP.respond_303 Constant.public_home request respond
+			Just token ->
+				do
+					_ <- DB.Session.delete (BS.C8.unpack token) database
+					let
+						cookie_header =
+							HTTP.set_cookie_header
+								Cookie.defaultSetCookie{
+									Cookie.setCookieName = Constant.session,
+									Cookie.setCookieValue = "",
+									Cookie.setCookiePath = Just "/",
+									Cookie.setCookieMaxAge = Just 0}
+					HTTP.respond_303_headers [cookie_header] Constant.public_home request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
