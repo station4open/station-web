@@ -23,25 +23,27 @@
 						Subject<xsl:if test='count(subjects/subject)!=1'>s</xsl:if>
 					</span>
 				</div>
-				<xsl:for-each select='subjects/subject'>
-					<div class='card-course'>
-						<div class='title'>
-							<xsl:value-of select='title'/>
-						</div>
-						<div class='description'>
-							<pre><xsl:value-of select='description'/></pre>
-						</div>
-						<div class='tail'>
-							<div class='enroll'>
-								<a>
-									<xsl:attribute name='href'>learn/subject/<xsl:value-of select='identifier'/></xsl:attribute>
-									Enroll Now
-								</a>
+				<div class='content'>
+					<xsl:for-each select='subjects/subject'>
+						<div class='card-course'>
+							<div class='title'>
+								<xsl:value-of select='title'/>
 							</div>
-							<div class='point'></div>
+							<div class='description'>
+								<pre><xsl:value-of select='description'/></pre>
+							</div>
+							<div class='tail'>
+								<div class='enroll'>
+									<a>
+										<xsl:attribute name='href'>learn/subject/<xsl:value-of select='identifier'/></xsl:attribute>
+										Enroll Now
+									</a>
+								</div>
+								<div class='point'></div>
+							</div>
 						</div>
-					</div>
-				</xsl:for-each>
+					</xsl:for-each>
+				</div>
 			</div>
 		</body>
 	</html>

@@ -71,6 +71,7 @@
 				<xsl:if test='session/role="SysOp"'>
 					<li><a href='/sysop/account'>Accounts Management</a></li>
 				</xsl:if>
+				<li><a href='/public/logout'>Log Out</a></li>
 			</ul>
 		</div>
 	</header>
