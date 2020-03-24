@@ -8,7 +8,7 @@
 	for (var i=0; i<forms.length; ++i)
 		(function (form) {
 			var checkbox = form.querySelector('input[type="checkbox"][name="delete"]');
-			var textboxes = form.querySelectorAll('input[type="text"], input[type="number"], textarea');
+			var textboxes = form.querySelectorAll('input[type="text"], input[type="number"], input[type="password"], textarea');
 			function update() {
 				for (var j=0; j<textboxes.length; ++j)
 					if (!textboxes.item(j).readOnly)

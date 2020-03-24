@@ -10,95 +10,155 @@
 	<html>
 		<head>
 			<title>SysOp: Account</title>
-			<link rel="stylesheet" type="text/css" href="base.css"/>
 			<script type='application/ecmascript' src='delete_disable.js' async=''/>
+			<xsl:call-template name='header-head'/>
+			<link rel='stylesheet' type='text/css' href='account.css'/>
 		</head>
 		<body>
-			<xsl:call-template name='menubar'/>
-			<section>
-				<h1>Create new account</h1>
-				<p>
+			<xsl:call-template name='header'/>
+			<div class='container-content'>
+				<div class='account-function'>
+					<div class='title'>
+						<span>Create New Account</span>
+					</div>
 					<form method='POST'>
-						<label>
-							Name
-							<input type='text' name='name'/>
-						</label>
-						<label>
-							Role
-							<select name='role'>
-								<option value='User'>User</option>
-								<option value='SysOp'>SysOp</option>
-							</select>
-						</label>
-						<label>
-							New Password
-							<input type='text' name='password'/>
-						</label>
-						<button type='submit'>Save</button>
+						<div class='account-setting'>
+							<div class='container-attributes'>
+								<div class='account-attribute attribute'>
+									<div class='attribute-name'>
+										<span>Name</span>
+									</div>
+									<div class='attribute-value'>
+										<input type='text' class='value' name='name'/>
+									</div>
+								</div>
+								<div class='account-attribute attribute'>
+									<div class='attribute-name'>
+										<span>Role</span>
+									</div>
+									<div class='attribute-value select'>
+										<select id='role' class='value' name='role'>
+											<option value='BasicUser'>Basic User</option>
+											<option value='SysOp'>System Operator</option>
+										</select>
+									</div>
+								</div>
+								<div class='account-attribute attribute final-attribute'>
+									<div class='attribute-name'>
+										<span>New Password</span>
+									</div>
+									<div class='attribute-value'>
+										<input type='password' class='value final-value' name='password'/>
+									</div>
+								</div>
+								<div class='attribute'>
+									<div class='attribute-name'></div>
+									<div class='btn-submit'>
+										<input class='btn-add' type='submit' value='Add'/>
+									</div>
+								</div>
+							</div>
+						</div>
 					</form>
-				</p>
-			</section>
-			<section>
-				<h1>Modify existing accounts</h1>
-				<xsl:for-each select='user'>
-					<p>
+				</div>
+				<pre></pre>
+				<div class='account-function'>
+					<div class='title'>
+						<span>Modify Existing Accounts</span>
+					</div>
+					<xsl:for-each select='user'>
 						<form method='POST'>
-							<input type='text' name='user' readonly=''>
-								<xsl:attribute name='value'>
-									<xsl:value-of select='.'/>
-								</xsl:attribute>
-							</input>
-							<label>
-								Mark
-								<input type='text' name='mark' readonly=''>
-									<xsl:attribute name='value'><xsl:value-of select='@mark'/></xsl:attribute>
-								</input>
-							</label>
-							<br/>
-							<label>
-								Name
-								<input type='text' name='name'>
-									<xsl:attribute name='value'><xsl:value-of select='.'/></xsl:attribute>
-								</input>
-							</label>
-							<label>
-								Role
-								<select name='role'>
-									<option value='User'>
-										<xsl:if test='@role="User"'>
-											<xsl:attribute name='selected'/>
-										</xsl:if>
-										User
-									</option>
-									<option value='SysOp'>
-										<xsl:if test='@role="SysOp"'>
-											<xsl:attribute name='selected'/>
-										</xsl:if>
-										SysOp
-									</option>
-								</select>
-							</label>
-							<label>
-								New Password
-								<input type='text' name='password'/>
-							</label>
-							<label>
-								Lock
-								<input type='checkbox' name='lock'>
-									<xsl:if test='@lock'>
-										<xsl:attribute name='checked'/>
-									</xsl:if>
-								</input>
-							</label>
-							<label>
-								Delete
-								<input type='checkbox' name='delete'/>
-							</label>
-							<button type='submit'>Save</button>
+							<div class='account-setting'>
+								<div class='container-attributes'>
+									<div class='account-attribute attribute'>
+										<div class='attribute-name'>
+											<span>Name</span>
+										</div>
+										<div class='attribute-value'>
+											<input type='text' class='value' name='user' readonly=''>
+												<xsl:attribute name='value'><xsl:value-of select='.'/></xsl:attribute>
+											</input>
+										</div>
+									</div>
+									<div class='account-attribute attribute'>
+										<div class='attribute-name'>
+											<span>Mark</span>
+										</div>
+										<div class='attribute-value'>
+											<input type='text' class='value' name='mark' readonly=''>
+												<xsl:attribute name='value'><xsl:value-of select='@mark'/></xsl:attribute>
+											</input>
+										</div>
+									</div>
+									<div class='attribute'>
+										<div class='attribute-name'>Lock</div>
+										<div class='btn-attribute'>
+											<input type='checkbox' name='lock'>
+												<xsl:if test='@lock'>
+													<xsl:attribute name='checked'/>
+												</xsl:if>
+											</input>
+										</div>
+									</div>
+									<div class='attribute'>
+										<div class='attribute-name'>Delete</div>
+										<div class='btn-attribute'>
+											<input type='checkbox' name='delete'/>
+										</div>
+									</div>
+								</div>
+								<div class='container-attributes'>
+									<div class='account-attribute attribute'>
+										<div class='attribute-name'>
+											<span>New Name</span>
+										</div>
+										<div class='attribute-value'>
+											<input type='text' class='value' name='name'>
+												<xsl:attribute name='value'><xsl:value-of select='.'/></xsl:attribute>
+											</input>
+										</div>
+									</div>
+									<div class='account-attribute attribute'>
+										<div class='attribute-name'>
+											<span>Role</span>
+										</div>
+										<div class='attribute-value select'>
+											<select id='role' class='value' name='role'>
+												<option value='User'>
+													<xsl:if test='@role="User"'>
+														<xsl:attribute name='selected'/>
+													</xsl:if>
+													Basic User
+												</option>
+												<option value='SysOp'>
+													<xsl:if test='@role="SysOp"'>
+														<xsl:attribute name='selected'/>
+													</xsl:if>
+													System Operator
+												</option>
+											</select>
+										</div>
+									</div>
+									<div class='account-attribute attribute final-attribute'>
+										<div class='attribute-name'>
+											<span>New Password</span>
+										</div>
+										<div class='attribute-value'>
+											<input type='text' class='value final-value' name='password'/>
+										</div>
+									</div>
+									<div class='attribute'>
+										<div class='attribute-name'></div>
+										<div class='btn-submit'>
+											<input class='btn-save' type='submit' value='Save'/>
+										</div>
+									</div>
+								</div>
+							</div>
 						</form>
-					</p>
-				</xsl:for-each>
-			</section>
+					</xsl:for-each>
+				</div>
+			</div>
 		</body>
 	</html>
 </xsl:template>

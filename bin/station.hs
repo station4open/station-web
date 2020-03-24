@@ -114,7 +114,8 @@ main =
 												Session.database = database,
 												Session.user = user}
 								$ Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path))
-								request respond
+								request
+								respond
 					Warp.run port handle
 			["adduser", username@(_:_), password@(_:_), role's@(_:_)] ->
 				case readMaybe role's of
