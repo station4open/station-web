@@ -126,7 +126,7 @@ main =
 							n <-
 								DB.execute
 									database
-									"INSERT INTO \"USER\"(\"NAME\",\"PASSWORD\") VALUES(?,?,?)"
+									"INSERT INTO \"USER\"(\"NAME\",\"PASSWORD\",\"ROLE\") VALUES(?,?,?)"
 									(username, Crypto.Scrypt.getEncryptedPass encrypted, fromEnum (role :: Constant.Role.Type))
 							case n of
 								1 ->
@@ -150,6 +150,9 @@ main =
 				do
 					putStrLn "Commands:"
 					putStrLn "\t(no argument): start server"
+					putStrLn "\thelp: display this documentation text"
+					putStrLn "\tmigrate: apply database migrations (in sql/migration)"
 					putStrLn "\tadduser {username} {password} {role}: add a new user"
+					putStrLn "\t\trole: SysOp, or User (see bin/Station/Constant/Role.hs)"
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}
