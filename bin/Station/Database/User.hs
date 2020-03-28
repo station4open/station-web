@@ -85,7 +85,7 @@ add user db =
 			DB.execute
 				db
 				[sql| INSERT INTO "USER" ("NAME","PASSWORD","ROLE","MARK","LOCK") VALUES (?,?,?,?,?) |]
-				(name user, hash, fromEnum (role user), lock user)
+				(name user, hash, fromEnum (role user), mark user, lock user)
 		return (n == 1)
 
 set :: String -> Type -> DB.Connection -> IO Bool
@@ -96,8 +96,8 @@ set old new db =
 				n <-
 					DB.execute
 						db
-						[sql| UPDATE "USER" SET "NAME"=?,"ROLE"=?,"LOCK"=? WHERE "NAME"=? |]
-						(name new, fromEnum (role new), lock new, old)
+						[sql| UPDATE "USER" SET "NAME"=?,"ROLE"=?,"MARK"=?,"LOCK"=? WHERE "NAME"=? |]
+						(name new, fromEnum (role new), mark new, lock new, old)
 				return (n == 1)
 		new_password ->
 			do

@@ -38,7 +38,7 @@
 									</div>
 									<div class='attribute-value select'>
 										<select id='role' class='value' name='role'>
-											<option value='BasicUser'>Basic User</option>
+											<option value='User'>Basic User</option>
 											<option value='SysOp'>System Operator</option>
 										</select>
 									</div>
@@ -85,7 +85,7 @@
 											<span>Mark</span>
 										</div>
 										<div class='attribute-value'>
-											<input type='text' class='value' name='mark' readonly=''>
+											<input type='text' class='value' name='mark'>
 												<xsl:attribute name='value'><xsl:value-of select='@mark'/></xsl:attribute>
 											</input>
 										</div>

@@ -60,16 +60,17 @@ handle_account session request respond
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case map (flip lookup parameters) ["delete", "user", "name", "role", "password", "mark", "lock"] of
-				[Nothing, Nothing, Just name, Just role', Just password, Just mark', lock] ->
-					case (readMaybe (BS.U8.toString role'), readMaybe (BS.U8.toString mark')) of
-						(Just role, Just mark) ->
+				[Nothing, Nothing, Just name, Just role', Just password, Nothing, Nothing] ->
+					{- create account -}
+					case readMaybe (BS.U8.toString role') of
+						Just role ->
 							let new =
 								DB.User.Record{
 									DB.User.name = BS.U8.toString name,
 									DB.User.role = role,
 									DB.User.password = BS.U8.toString password,
-									DB.User.mark = mark,
-									DB.User.lock = isJust lock}
+									DB.User.mark = 0,
+									DB.User.lock = False}
 								in redirected =<< DB.User.add new (Session.database session)
 						_ ->
 							do
@@ -77,6 +78,7 @@ handle_account session request respond
 								BS.C8.putStrLn role'
 								HTTP.respond_404 request respond
 				[Nothing, Just user, Just name, Just role', Just password, Just mark', lock] ->
+					{- modify account -}
 					case (readMaybe (BS.U8.toString role'), readMaybe (BS.U8.toString mark')) of
 						(Just role, Just mark) ->
 							let new =
@@ -93,6 +95,7 @@ handle_account session request respond
 								BS.C8.putStrLn role'
 								HTTP.respond_404 request respond
 				Just _ : Just user : _ ->
+					{- delete account -}
 					redirected =<< DB.User.delete (BS.U8.toString user) (Session.database session)
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
