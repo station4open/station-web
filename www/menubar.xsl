@@ -69,7 +69,8 @@
 				<li><a href=''>g0vhk</a></li>
 				<li><a href='/account'>My Account</a></li>
 				<xsl:if test='session/role="SysOp"'>
-					<li><a href='/sysop/account'>Accounts Management</a></li>
+					<li><a href='/sysop/account'>Account Management</a></li>
+					<li><a href='/sysop/account'>Lesson Management</a></li>
 				</xsl:if>
 				<li><a href='/public/logout'>Log Out</a></li>
 			</ul>
