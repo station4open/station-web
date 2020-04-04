@@ -10,19 +10,30 @@
 	<html>
 		<head>
 			<title>Station - Subject</title>
-			<link rel="stylesheet" type="text/css" href="/base.css"/>
 			<xsl:call-template name='header-head'/>
 			<xsl:call-template name='slide-head'/>
-			<link rel='stylesheet' type='text/css' href='/content.css'/>
+			<link rel='stylesheet' type='text/css' href='../subject.css'/>
 		</head>
 		<body>
 			<xsl:call-template name='header'/>
 			<xsl:call-template name='slide'/>
 			<div class='container-content'>
-				<div class='title'>
-					<span><xsl:value-of select='title'/></span>
+				<div class='container-subject'>
+					<div class="title">
+						<xsl:value-of select='title'/>
+					</div>
+					<div class='btn'>
+						<a href='/home'>
+							View All Course<xsl:if test='count(courses/course)!=1'>s</xsl:if>
+						</a>
+					</div>
 				</div>
-				<pre><xsl:value-of select='description'/></pre>
+				<div class='container-description'>
+					<span><xsl:value-of select='description'/></span>
+				</div>
+				<div id='all_course' class='title'>
+					All Course<xsl:if test='count(courses/course)!=1'>s</xsl:if>
+				</div>
 				<div class='content'>
 					<xsl:for-each select='courses/course'>
 						<div class='card-course'>
@@ -30,7 +41,7 @@
 								<xsl:value-of select='title'/>
 							</div>
 							<div class='description'>
-								<pre><xsl:value-of select='description'/></pre>
+								<span><xsl:value-of select='description'/></span>
 							</div>
 							<div class='tail'>
 								<div class='enroll'>
