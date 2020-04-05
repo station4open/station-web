@@ -64,13 +64,13 @@
 		<div class='menu-content'>
 			<ul>
 				<li><a href='/home'>Home</a></li>
-				<li><a href=''>Station for Open Cultures</a></li>
+				<li><a href='https://www.collaction.hk/s/station/'>Station for Open Cultures</a></li>
 				<li><a href='https://www.eatonworkshop.com/hotel/hong-kong'>EatonHK</a></li>
-				<li><a href=''>g0vhk</a></li>
+				<li><a href='https://g0vhk.io/'>g0vhk</a></li>
 				<li><a href='/account'>My Account</a></li>
 				<xsl:if test='session/role="SysOp"'>
 					<li><a href='/sysop/account'>Account Management</a></li>
-					<li><a href='/sysop/account'>Lesson Management</a></li>
+					<li><a href='/sysop/subjects'>Lesson Management</a></li>
 				</xsl:if>
 				<li><a href='/public/logout'>Log Out</a></li>
 			</ul>
