@@ -73,7 +73,7 @@
 											<div class="answer">
 												<label class="answer-radio">
 													<input type="radio" required=''>
-														<xsl:if test='not(../../session)'>
+														<xsl:if test='not(../../../../session)'>
 															<xsl:attribute name='hidden'/>
 														</xsl:if>
 														<xsl:attribute name='name'>
