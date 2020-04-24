@@ -32,7 +32,7 @@ executable station
     Station.Web
     Station.Web.Tool
     Station.Web.Session
-    Station.Web.Public
+    Station.Web.Login
     Station.Web.SysOp
     Station.Web.Learn
   build-depends:

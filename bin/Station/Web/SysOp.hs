@@ -3,7 +3,7 @@ module Station.Web.SysOp (handle) where
 import Prelude ()
 import Data.Bool (Bool (True, False), otherwise)
 import Data.Eq ((==))
-import Data.Maybe (Maybe (Nothing, Just), isJust)
+import Data.Maybe (Maybe (Nothing, Just), isJust, fromJust)
 import Data.Tuple (fst)
 import Data.Monoid ((<>))
 import Data.List (map, lookup)
@@ -45,8 +45,8 @@ handle_account session request respond
 				(XML.xslt
 					(path_prefix <> "account.xsl")
 					(XML.element "account" []
-						(Web.Tool.user_XML (Session.user session) :
-							map
+						(Web.Tool.user_XML (fromJust (Session.user session))
+							: map
 								(\ user ->
 									XML.element
 										"user"
@@ -113,8 +113,8 @@ handle_subjects session request respond
 				(XML.xslt
 					(path_prefix <> "subjects.xsl")
 					(XML.element "subjects" []
-						(Web.Tool.user_XML (Session.user session) :
-							map
+						(Web.Tool.user_XML (fromJust (Session.user session))
+							: map
 								(\ subject ->
 									XML.element "item" [] [
 										XML.element "identifier" [] [XML.text (show (DB.Subject.identifier subject))],
@@ -152,7 +152,7 @@ handle_subject session identifier request respond
 						(XML.xslt
 							(path_prefix <> "subject.xsl")
 							(XML.element "subject" [] [
-								Web.Tool.user_XML (Session.user session),
+								Web.Tool.user_XML (fromJust (Session.user session)),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "title" [] [XML.text (DB.Subject.title subject)],
 								XML.element "description" [] [XML.text (DB.Subject.description subject)],
@@ -221,7 +221,7 @@ handle_course session identifier request respond
 						(XML.xslt
 							(path_prefix <> "course.xsl")
 							(XML.element "course" [] [
-								Web.Tool.user_XML (Session.user session),
+								Web.Tool.user_XML (fromJust (Session.user session)),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "subject" [] [XML.text (show (DB.Course.subject course))],
 								XML.element "title" [] [XML.text (DB.Course.title course)],
@@ -308,7 +308,7 @@ handle_lesson session identifier request respond
 						(XML.xslt
 							(path_prefix <> "lesson.xsl")
 							(XML.element "lesson" [] [
-								Web.Tool.user_XML (Session.user session),
+								Web.Tool.user_XML (fromJust (Session.user session)),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "number" [] [XML.text (show (DB.Lesson.number lesson))],
 								XML.element "course" [] [XML.text (show (DB.Lesson.course lesson))],
@@ -397,7 +397,7 @@ handle_question session identifier request respond
 						(XML.xslt
 							(path_prefix <> "question.xsl")
 							(XML.element "question" [] [
-								Web.Tool.user_XML (Session.user session),
+								Web.Tool.user_XML (fromJust (Session.user session)),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "lesson" [] [XML.text (show (DB.Question.lesson question))],
 								XML.element "number" [] [XML.text (show (DB.Question.number question))],
@@ -477,7 +477,7 @@ handle_answer session identifier request respond
 handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
 	case session of
-		Session.Record{Session.user = DB.User.Record{DB.User.role = Constant.Role.SysOp}, Session.database = db} ->
+		Session.Record{Session.user = Just DB.User.Record{DB.User.role = Constant.Role.SysOp}, Session.database = db} ->
 			case path of
 				["account"] -> handle_account session request respond
 				["subjects"] -> handle_subjects session request respond

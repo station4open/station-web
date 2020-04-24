@@ -23,7 +23,7 @@
 						<xsl:value-of select='title'/>
 					</div>
 					<div class='btn'>
-						<a href='/home'>
+						<a href='/learn'>
 							View All Course<xsl:if test='count(courses/course)!=1'>s</xsl:if>
 						</a>
 					</div>

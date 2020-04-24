@@ -7,7 +7,8 @@ module Station.Database.Work (
 ) where
 
 import Prelude ()
-import Data.Bool (Bool)
+import Data.Bool (Bool (False))
+import Data.Maybe (Maybe (Nothing, Just))
 import Data.List (map)
 import Data.Function ((.))
 import Data.String (String)
@@ -113,11 +114,11 @@ add user_name lesson_identifier list_answer_identifier db =
 					(DB.In list_answer_identifier, user_name)))
 
 get_lesson ::
-	String ->
+	Maybe String ->
 	DB.Lesson.Identifier ->
 	DB.Connection ->
-	IO [(DB.Lesson.Type, [(DB.Question.Type, [(DB.Answer.Type, Bool)])])]
-get_lesson user_name lesson_identifier db =
+	IO [(DB.Lesson.Type, [(DB.Question.Type, [(Bool, DB.Answer.Type)])])]
+get_lesson Nothing lesson_identifier db =
 	DB.withTransactionMode
 		(DB.TransactionMode DB.ReadCommitted DB.ReadOnly)
 		db
@@ -126,11 +127,31 @@ get_lesson user_name lesson_identifier db =
 				(,) lesson <$>
 					(mapM
 						(\ question ->
-							((,) question . map (\ (a DB.:. DB.Only m) -> (a, m))) <$>
+							((,) question . map ((,) False)) <$>
 								DB.query
 									db
 									[sql|
-										SELECT "IDENTIFIER", "QUESTION", "TEXT", "MARK", "WORK"."ANSWER" IS NOT NULL
+										SELECT "IDENTIFIER", "QUESTION", "TEXT", "MARK"
+											FROM "ANSWER"
+											WHERE "QUESTION"=?
+											ORDER BY RANDOM() |]
+									(DB.Only (DB.Question.identifier question)))
+						=<< DB.Question.list lesson_identifier db))
+			=<< DB.Lesson.get lesson_identifier db)
+get_lesson (Just user_name) lesson_identifier db =
+	DB.withTransactionMode
+		(DB.TransactionMode DB.ReadCommitted DB.ReadOnly)
+		db
+		(mapM
+			(\ lesson ->
+				(,) lesson <$>
+					(mapM
+						(\ question ->
+							((,) question . map (\ (DB.Only w DB.:. a) -> (w, a))) <$>
+								DB.query
+									db
+									[sql|
+										SELECT "WORK"."ANSWER" IS NOT NULL, "IDENTIFIER", "QUESTION", "TEXT", "MARK"
 											FROM "ANSWER"
 											LEFT OUTER JOIN "WORK"
 												ON "ANSWER"."IDENTIFIER"="WORK"."ANSWER" AND "WORK"."USER"=?

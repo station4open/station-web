@@ -1,4 +1,4 @@
-module Station.Web.Public (handle) where
+module Station.Web.Login (handle) where
 
 import Prelude ()
 import Data.Bool (Bool (True), otherwise)
@@ -77,6 +77,6 @@ handle_logout database request respond
 handle :: DB.Type -> Wai.Middleware
 handle database next request respond =
 	case Wai.pathInfo request of
-		["public", "login"] -> handle_login database request respond
-		["public", "logout"] -> handle_logout database request respond
+		["login"] -> handle_login database request respond
+		["logout"] -> handle_logout database request respond
 		_ -> next request respond

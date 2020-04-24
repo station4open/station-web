@@ -73,6 +73,9 @@
 											<div class="answer">
 												<label class="answer-radio">
 													<input type="radio" required=''>
+														<xsl:if test='not(../../session)'>
+															<xsl:attribute name='hidden'/>
+														</xsl:if>
 														<xsl:attribute name='name'>
 															<xsl:value-of select='../../identifier'/>
 														</xsl:attribute>
@@ -96,11 +99,13 @@
 									</div>
 								</div>
 							</xsl:for-each>
-							<div class="container-submit">
-								<div class="btn-submit">
-									<input type='submit' value='Submit'/>
+							<xsl:if test='session'>
+								<div class="container-submit">
+									<div class="btn-submit">
+										<input type='submit' value='Submit'/>
+									</div>
 								</div>
-							</div>
+							</xsl:if>
 						</form>
 					</div>
 				</div>

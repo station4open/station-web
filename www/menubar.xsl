@@ -10,16 +10,16 @@
 		<strong><xsl:value-of select='session/name'/></strong>:
 		<em><xsl:value-of select='session/mark'/> point<xsl:if test='session/mark!=1'>s</xsl:if></em>
 		| <a href='/home'>Home</a>
-		| <a href='/public/logout'>Log out</a>
+		| <a href='/logout'>Log out</a>
 	</div>
 	<hr/>
 </xsl:template>
 <xsl:template name='header-head'>
-	<link rel='stylesheet' type='text/css' href='/public/global.css'/>
-	<link rel='stylesheet' type='text/css' href='/public/font-family.css'/>
-	<link rel='stylesheet' type='text/css' href='/public/header.css'/>
-	<link rel='stylesheet' type='text/css' href='/public/slide-show.css'/>
-	<script type='application/ecmascript' src='/public/menu.js'></script>
+	<link rel='stylesheet' type='text/css' href='/global.css'/>
+	<link rel='stylesheet' type='text/css' href='/font-family.css'/>
+	<link rel='stylesheet' type='text/css' href='/header.css'/>
+	<link rel='stylesheet' type='text/css' href='/slide-show.css'/>
+	<script type='application/ecmascript' src='/menu.js'></script>
 </xsl:template>
 <xsl:template name='header'>
 	<header>
@@ -28,29 +28,59 @@
 				<div class='logo align-bot'>
 					<div class='sponsor'>
 						<a href='https://www.collaction.hk/s/station/'>
-							<img src='/public/station_logo_black.png'/>
+							<img src='/station_logo_black.png'/>
 						</a>
 					</div>
 					<div class='sponsor'>
 						<a href='https://www.eatonworkshop.com/hotel/hong-kong'>
-							<img class='vice-sponsor' src='/public/eaton_logo_black.png'/>
+							<img class='vice-sponsor' src='/eaton_logo_black.png'/>
 						</a>
 					</div>
 				</div>
 				<div class='user align-bot'>
-					<div class='user-info'>
-						<div class='welcome-msg basic-info-font'>
-							<span>Welcome Back!</span>
-						</div>
-						<div class='user-data'>
-							<div class='user-name align-bot basic-info-font'>
-								<span class='first-name'><xsl:value-of select='session/name'/></span>
+					<xsl:if test='not(session)'>
+						<form method='POST' action='/login'>
+							<div class='account-login'>
+								<div class='account-attribute attribute'>
+									<div class='attribute-name'>
+										<span>Name</span>
+									</div>
+									<div class='attribute-value'>
+										<input type='text' class='value' name='username'/>
+									</div>
+								</div>
+								<div class='account-attribute attribute final-attribute'>
+									<div class='attribute-name'>
+										<span>Password</span>
+									</div>
+									<div class='attribute-value'>
+										<input type='password' class='value final-value' name='password'/>
+									</div>
+								</div>
+								<div class='attribute'>
+									<div class='attribute-name'></div>
+									<div class='btn-submit'>
+										<input type='submit' class='btn-login' value='Login'/>
+									</div>
+								</div>
 							</div>
-							<div class='user-score align-bot basic-info-font'>
-								<span>Point: <xsl:value-of select='session/mark'/></span>
+						</form>
+					</xsl:if>
+					<xsl:if test='session'>
+						<div class='user-info'>
+							<div class='welcome-msg basic-info-font'>
+								<span>Welcome Back!</span>
+							</div>
+							<div class='user-data'>
+								<div class='user-name align-bot basic-info-font'>
+									<span class='first-name'><xsl:value-of select='session/name'/></span>
+								</div>
+								<div class='user-score align-bot basic-info-font'>
+									<span>Point: <xsl:value-of select='session/mark'/></span>
+								</div>
 							</div>
 						</div>
-					</div>
+					</xsl:if>
 				</div>
 			</div>
 			<div class='container-menu'>
@@ -63,8 +93,8 @@
 		</div>
 		<div class='menu-content'>
 			<ul>
-				<li><a href='/home'>Home</a></li>
-				<li><a href='https://www.collaction.hk/s/station/'>Station for Open Cultures</a></li>
+				<li><a href='/learn'>Home</a></li>
+				<li><a href='https://www.collaction.hk/s/station/'>Station</a></li>
 				<li><a href='https://www.eatonworkshop.com/hotel/hong-kong'>EatonHK</a></li>
 				<li><a href='https://g0vhk.io/'>g0vhk</a></li>
 				<li><a href='/account'>My Account</a></li>
@@ -72,30 +102,30 @@
 					<li><a href='/sysop/account'>Account Management</a></li>
 					<li><a href='/sysop/subjects'>Lesson Management</a></li>
 				</xsl:if>
-				<li><a href='/public/logout'>Log Out</a></li>
+				<li><a href='/logout'>Log Out</a></li>
 			</ul>
 		</div>
 	</header>
 </xsl:template>
 <xsl:template name='slide-head'>
-	<script type='application/ecmascript' src='/public/slider.js'></script>
+	<script type='application/ecmascript' src='/slider.js'></script>
 </xsl:template>
 <xsl:template name='slide'>
 	<div class='container-slide-show' onmouseover='stopAutoSlide()' onmouseout='contineSlide()'>
 		<div class='slide'>
-			<a href=''><img src='/public/slide/1.jpg'/></a>
+			<a href=''><img src='/slide/1.jpg'/></a>
 		</div>
 		<div class='slide'>
-			<a href=''><img src='/public/slide/2.jpg'/></a>
+			<a href=''><img src='/slide/2.jpg'/></a>
 		</div>
 		<div class='slide'>
-			<a href=''><img src='/public/slide/1.jpg'/></a>
+			<a href=''><img src='/slide/1.jpg'/></a>
 		</div>
 		<div class='slide'>
-			<a href=''><img src='/public/slide/2.jpg'/></a>
+			<a href=''><img src='/slide/2.jpg'/></a>
 		</div>
 		<div class='slide'>
-			<a href=''><img src='/public/slide/1.jpg'/></a>
+			<a href=''><img src='/slide/1.jpg'/></a>
 		</div>
 		<div class='container-btn-slide'>
 			<span class='btn-slide' onclick='setShowImgIndex(0)'></span>

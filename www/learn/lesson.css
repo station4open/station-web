@@ -157,6 +157,9 @@ input[type=checkbox]:checked + .btn-swap{
 .answer-radio input[type="radio"]:checked ~ span::after{
 	transform: translate(-50%, -50%) scale(1);
 }
+.answer-radio input[hidden] ~ span{
+	display: none;
+}
 .container-submit{
 	margin: 0 auto;
 	width: 50%;

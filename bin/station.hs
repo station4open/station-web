@@ -4,7 +4,7 @@ import Prelude (fromEnum)
 import Data.Bool (Bool (True))
 import Data.Maybe (Maybe (Nothing, Just), fromMaybe)
 import Data.List ((++), (\\), lookup, sort)
-import Data.Function (id, ($))
+import Data.Function (($))
 import Data.Functor ((<$>))
 import Control.Monad (return, (>>=), (=<<))
 import Text.Show (show)
@@ -29,7 +29,7 @@ import qualified Station.Database.User as DB.User
 import qualified Station.Database.Session as DB.Session
 import qualified Station.HTTP as HTTP
 import qualified Station.Web as Web
-import qualified Station.Web.Public as Public
+import qualified Station.Web.Login as Login
 import qualified Station.Web.Session as Session
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}
@@ -100,19 +100,13 @@ main =
 						do
 							user' <- get_user database request
 							(HTTP.log log
+								$ Login.handle database
+								$ Web.handle
+									Session.Record{
+										Session.log = log,
+										Session.database = database,
+										Session.user = user'}
 								$ handle_home
-								$ Public.handle database
-								$ case user' of
-									Nothing ->
-										case Wai.pathInfo request of
-											"public" : _ -> id
-											_ -> \ _ -> HTTP.respond_303 Constant.public_home
-									Just user ->
-										Web.handle
-											Session.Record{
-												Session.log = log,
-												Session.database = database,
-												Session.user = user}
 								$ Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path))
 								request
 								respond

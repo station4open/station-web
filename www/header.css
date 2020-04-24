@@ -37,6 +37,37 @@ img{
 	text-decoration: none;
 	color: black;
 }
+.account-login{
+	display: inline-flex;
+	justify-self: left;
+}
+.account-login .account-attribute{
+	margin-left: 25px;
+}
+.attribute .attribute-name{
+	height: 20px;
+	font-size: 14px;
+	font-weight: bold;
+	color: #4a4a4a;
+	margin: 6px 0;
+}
+.attribute-value .value{
+	box-sizing: border-box;
+	width: 245px;
+	height: 35px;
+	border-radius: 5px;
+	padding: 0 10px;
+	border: solid 1px #dfe3e9;
+	object-fit: contain;
+}
+
+.attribute-value .final-value{
+	width: 180px;
+	margin-right: 0;
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+	border-right: 0px;
+}
 .container-basic-info .user-info{
 	display: flex;
 }

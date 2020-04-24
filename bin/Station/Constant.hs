@@ -15,13 +15,13 @@ auth_realm :: IsString s => s
 auth_realm = fromString "Station"
 
 public_home :: IsString s => s
-public_home = fromString "/public/home.xhtml"
+public_home = fromString "/home.xhtml"
 
 private_home :: IsString s => s
-private_home = fromString "/home"
+private_home = fromString "/learn"
 
 login_fail :: IsString s => s
-login_fail = fromString "/public/login-fail.xhtml"
+login_fail = fromString "/login-fail.xhtml"
 
 session :: IsString s => s
 session = "session"
