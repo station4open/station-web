@@ -93,7 +93,7 @@
 		</div>
 		<div class='menu-content'>
 			<ul>
-				<li><a href='/learn'>Home</a></li>
+				<li><a href='/learn'>Tree of Knowledge</a></li>
 				<li><a href='https://www.collaction.hk/s/station/'>Station</a></li>
 				<li><a href='https://www.eatonworkshop.com/hotel/hong-kong'>EatonHK</a></li>
 				<li><a href='https://g0vhk.io/'>g0vhk</a></li>
