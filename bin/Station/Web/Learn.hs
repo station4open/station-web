@@ -41,7 +41,7 @@ handle_home session request respond
 			subjects <- DB.Subject.list (Session.database session)
 			HTTP.respond_XML
 				(XML.xslt
-					"/home.xsl"
+					"/learn/home.xsl"
 					(XML.element "home" []
 						(maybeToList (Web.Tool.user_XML <$> Session.user session) ++
 							[

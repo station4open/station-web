@@ -3,11 +3,10 @@ module Station.Web (handle) where
 import Prelude ()
 import Data.Eq ((==))
 import Data.Ord ((>))
-import Data.Maybe (Maybe (Just), maybeToList)
+import Data.Maybe (Maybe (Just))
 import Data.Tuple (fst)
-import Data.List ((++), map, lookup)
+import Data.List (lookup)
 import Data.Functor ((<$>))
-import Text.Show (show)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as BS.U8
 import qualified Network.HTTP.Types
@@ -17,7 +16,6 @@ import qualified Network.Wai.Parse as Wai.Parse
 import qualified Station.Constant as Constant
 import qualified Station.XML as XML
 import qualified Station.Database.User as DB.User
-import qualified Station.Database.Subject as DB.Subject
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Session as Session
 import qualified Station.Web.Tool as Web.Tool
@@ -55,6 +53,7 @@ handle_account _ request respond =
 handle :: Session.Type -> Wai.Middleware
 handle session next request respond =
 	case Wai.pathInfo request of
+		[] -> HTTP.respond_301 Constant.public_home request respond
 		"sysop" : path -> Web.SysOp.handle session path next request respond
 		["account"] -> handle_account session request respond
 		"learn" : path -> Web.Learn.handle session path next request respond

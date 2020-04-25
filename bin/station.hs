@@ -45,12 +45,6 @@ migration_path = "sql/migration"
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}
 
-handle_home :: Wai.Middleware
-handle_home next request =
-	case Wai.pathInfo request of
-		[] -> HTTP.respond_301 Constant.public_home request
-		_ -> next request
-
 get_user :: DB.Connection -> Wai.Request -> IO (Maybe DB.User.Type)
 get_user database request =
 	case lookup Constant.session (HTTP.cookies request) of
@@ -106,7 +100,6 @@ main =
 										Session.log = log,
 										Session.database = database,
 										Session.user = user'}
-								$ handle_home
 								$ Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path))
 								request
 								respond
