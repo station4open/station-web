@@ -21,7 +21,7 @@
 					<div class='title'>
 						<span>Create New Account</span>
 					</div>
-					<form method='POST'>
+					<form method='POST' action='account'>
 						<div class='account-setting'>
 							<div class='container-attributes'>
 								<div class='account-attribute attribute'>
@@ -67,7 +67,7 @@
 						<span>Modify Existing Accounts</span>
 					</div>
 					<xsl:for-each select='user'>
-						<form method='POST'>
+						<form method='POST' action='account'>
 							<div class='account-setting'>
 								<div class='container-attributes'>
 									<div class='account-attribute attribute'>

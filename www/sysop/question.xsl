@@ -22,7 +22,7 @@
 			<section>
 				<h1>Question <xsl:value-of select='number'/></h1>
 				<form method='POST'>
-					<xsl:attribute name='action'>../question/<xsl:value-of select='identifier'/></xsl:attribute>
+					<xsl:attribute name='action'><xsl:value-of select='identifier'/></xsl:attribute>
 					<input type='hidden' name='lesson'>
 						<xsl:attribute name='value'><xsl:value-of select='lesson'/></xsl:attribute>
 					</input>

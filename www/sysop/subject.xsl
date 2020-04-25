@@ -21,6 +21,9 @@
 				<h1>Subject</h1>
 				<h2><xsl:value-of select='title'/></h2>
 				<form method='POST'>
+					<xsl:attribute name='action'>
+						<xsl:value-of select='identifier'/>
+					</xsl:attribute>
 					<label>
 						Title
 						<div class='flex'>
@@ -43,6 +46,7 @@
 			<section>
 				<h1>Create course</h1>
 				<form method='POST'>
+					<xsl:attribute name='action'><xsl:value-of select='identifier'/></xsl:attribute>
 					<xsl:attribute name='action'>../course/new/<xsl:value-of select='identifier'/></xsl:attribute>
 					<label>
 						Title

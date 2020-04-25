@@ -24,6 +24,7 @@
 				<h1>Course</h1>
 				<h2><xsl:value-of select='title'/></h2>
 				<form method='POST'>
+					<xsl:attribute name='action'><xsl:value-of select='identifier'/></xsl:attribute>
 					<input type='hidden' name='subject'>
 						<xsl:attribute name='value'><xsl:value-of select='subject'/></xsl:attribute>
 					</input>

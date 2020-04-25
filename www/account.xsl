@@ -13,7 +13,7 @@
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
-			<form method='POST'>
+			<form method='POST' action='account'>
 				<label>
 					New password
 					<input type='password' name='password'/>

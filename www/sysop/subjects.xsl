@@ -17,7 +17,7 @@
 			<xsl:call-template name='menubar'/>
 			<section>
 				<h1>Create new subject</h1>
-				<form method='POST'>
+				<form method='POST' action='subjects'>
 					<label>
 						Title
 						<div class='flex'>

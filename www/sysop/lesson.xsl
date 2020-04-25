@@ -23,6 +23,7 @@
 			<section>
 				<h1>Lesson</h1>
 				<form method='POST'>
+					<xsl:attribute name='action'><xsl:value-of select='identifier'/></xsl:attribute>
 					<h2><xsl:value-of select='number'/>. <xsl:value-of select='title'/></h2>
 					<input type='hidden' name='course'>
 						<xsl:attribute name='value'><xsl:value-of select='course'/></xsl:attribute>

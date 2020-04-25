@@ -17,16 +17,16 @@
 		</head>
 		<body>
 			<xsl:call-template name='header'/>
-			<div class="container-content">
-				<div class="container-title">
-					<div class="title-content">
-						<div class="btn-back">
+			<div class='container-content'>
+				<div class='container-title'>
+					<div class='title-content'>
+						<div class='btn-back'>
 							<a>
 								<xsl:attribute name='href'>../course/<xsl:value-of select='course'/></xsl:attribute>
 								<span>X</span>
 							</a>
 						</div>
-						<div class="lesson-title">
+						<div class='lesson-title'>
 							<span>
 								<xsl:value-of select='number'/>. <xsl:value-of select='title'/>
 							</span>
@@ -37,42 +37,45 @@
 						<label class='btn-swap' for='swap'/>
 					</div>
 				</div>
-				<div class="content">
-					<div class="container-article content-content">
-						<div class="session-title">
+				<div class='content'>
+					<div class='container-article content-content'>
+						<div class='session-title'>
 							<span>Article</span>
 						</div>
-						<div class="content-article content-container">
-							<div class="article">
+						<div class='content-article content-container'>
+							<div class='article'>
 								<span>
 									<xsl:value-of select='content'/>
 								</span>
 							</div>
 						</div>
 					</div>
-					<div class="container-question content-content">
-						<div class="session-title">
+					<div class='container-question content-content'>
+						<div class='session-title'>
 							<span>Questions</span>
 						</div>
-						<form method="POST">
+						<form method='POST'>
+							<xsl:attribute name='action'>
+								<xsl:value-of select='identifier'/>
+							</xsl:attribute>
 							<xsl:for-each select='questions/question'>
-								<div class="content-question content-container">
-									<div class="question-text">
+								<div class='content-question content-container'>
+									<div class='question-text'>
 										<span>
 											Q<xsl:value-of select='number'/>. <xsl:value-of select='text'/>
 										</span>
-										<div class="mark">
+										<div class='mark'>
 											<span>
 												Full mark:
 												<xsl:value-of select='mark'/> point<xsl:if test='mark!=1'>s</xsl:if>
 											</span>
 										</div>
 									</div>
-									<div class="container-answer">
+									<div class='container-answer'>
 										<xsl:for-each select='answers/answer'>
-											<div class="answer">
-												<label class="answer-radio">
-													<input type="radio" required=''>
+											<div class='answer'>
+												<label class='answer-radio'>
+													<input type='radio' required=''>
 														<xsl:if test='not(../../../../session)'>
 															<xsl:attribute name='hidden'/>
 														</xsl:if>
@@ -100,8 +103,8 @@
 								</div>
 							</xsl:for-each>
 							<xsl:if test='session'>
-								<div class="container-submit">
-									<div class="btn-submit">
+								<div class='container-submit'>
+									<div class='btn-submit'>
 										<input type='submit' value='Submit'/>
 									</div>
 								</div>
