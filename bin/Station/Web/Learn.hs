@@ -29,21 +29,21 @@ import qualified Station.Database.Answer as DB.Answer
 import qualified Station.Database.Work as DB.Work
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Tool as Web.Tool
-import qualified Station.Web.Session as Session
+import qualified Station.Web.Environment as Environment
 
 path_prefix :: IsString s => s
 path_prefix = "/learn/"
 
-handle_home :: Session.Type -> Wai.Application
+handle_home :: Environment.Type -> Wai.Application
 handle_home session request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		do
-			subjects <- DB.Subject.list (Session.database session)
+			subjects <- DB.Subject.list (Environment.database session)
 			HTTP.respond_XML
 				(XML.xslt
 					"/learn/home.xsl"
 					(XML.element "home" []
-						(maybeToList (Web.Tool.user_XML <$> Session.user session) ++
+						(maybeToList (Web.Tool.user_XML <$> Environment.user session) ++
 							[
 								XML.element "subjects" []
 									(map
@@ -58,17 +58,17 @@ handle_home session request respond
 handle_home _ request respond =
 	HTTP.respond_405 request respond
 
-handle_subject :: Session.Type -> DB.Subject.Identifier -> Wai.Application
+handle_subject :: Environment.Type -> DB.Subject.Identifier -> Wai.Application
 handle_subject session identifier request respond =
-	DB.Subject.get identifier (Session.database session) >>= \case
+	DB.Subject.get identifier (Environment.database session) >>= \case
 		[subject] ->
 			do
-				courses <- DB.Course.list identifier (Session.database session)
+				courses <- DB.Course.list identifier (Environment.database session)
 				HTTP.respond_XML
 					(XML.xslt
 						(path_prefix <> "subject.xsl")
 						(XML.element "subject" []
-							(maybeToList (Web.Tool.user_XML <$> Session.user session) ++
+							(maybeToList (Web.Tool.user_XML <$> Environment.user session) ++
 								[
 									XML.element "identifier" [] [XML.text (show identifier)],
 									XML.element "title" [] [XML.text (DB.Subject.title subject)],
@@ -85,17 +85,17 @@ handle_subject session identifier request respond =
 					respond
 		_ -> HTTP.respond_404 request respond
 
-handle_course :: Session.Type -> DB.Course.Identifier -> Wai.Application
+handle_course :: Environment.Type -> DB.Course.Identifier -> Wai.Application
 handle_course session identifier request respond =
-	DB.Course.get identifier (Session.database session) >>= \case
+	DB.Course.get identifier (Environment.database session) >>= \case
 		[course] ->
 			do
-				lessons <- DB.Lesson.list identifier (Session.database session)
+				lessons <- DB.Lesson.list identifier (Environment.database session)
 				HTTP.respond_XML
 					(XML.xslt
 						(path_prefix <> "course.xsl")
 						(XML.element "course" []
-							(maybeToList (Web.Tool.user_XML <$> Session.user session) ++
+							(maybeToList (Web.Tool.user_XML <$> Environment.user session) ++
 								[
 									XML.element "identifier" [] [XML.text (show identifier)],
 									XML.element "subject" [] [XML.text (show (DB.Course.subject course))],
@@ -113,16 +113,16 @@ handle_course session identifier request respond =
 					respond
 		_ -> HTTP.respond_404 request respond
 
-handle_lesson :: Session.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_lesson :: Environment.Type -> DB.Lesson.Identifier -> Wai.Application
 handle_lesson session lesson_identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		DB.Work.get_lesson (DB.User.name <$> Session.user session) lesson_identifier (Session.database session) >>= \case
+		DB.Work.get_lesson (DB.User.name <$> Environment.user session) lesson_identifier (Environment.database session) >>= \case
 			[(lesson, questions)] ->
 				HTTP.respond_XML
 					(XML.xslt
 						(path_prefix <> "lesson.xsl")
 						(XML.element "lesson" []
-							(maybeToList (Web.Tool.user_XML <$> Session.user session) ++
+							(maybeToList (Web.Tool.user_XML <$> Environment.user session) ++
 								[
 									XML.element "identifier" [] [XML.text (show lesson_identifier)],
 									XML.element "course" [] [XML.text (show (DB.Lesson.course lesson))],
@@ -157,7 +157,7 @@ handle_lesson session lesson_identifier request respond
 					request
 					respond
 			_ -> HTTP.respond_404 request respond
-handle_lesson session@Session.Record{Session.user = Just user} lesson_identifier request respond
+handle_lesson session@Environment.Record{Environment.user = Just user} lesson_identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
@@ -165,12 +165,12 @@ handle_lesson session@Session.Record{Session.user = Just user} lesson_identifier
 				(DB.User.name user)
 				lesson_identifier
 				(catMaybes (map (readMaybe . BS.U8.toString . snd) parameters))
-				(Session.database session)
+				(Environment.database session)
 			HTTP.respond_303 (Wai.rawPathInfo request) request respond
 handle_lesson _ _ request respond =
 	HTTP.respond_405 request respond
 
-handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
+handle :: Environment.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
 	case path of
 		[] -> handle_home session request respond

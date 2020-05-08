@@ -1,4 +1,4 @@
-module Station.Web.Session (Type (Record, log, database, user)) where
+module Station.Web.Environment (Type (Record, log, database, user)) where
 
 import Prelude ()
 import Data.Bool (Bool)

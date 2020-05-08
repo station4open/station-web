@@ -21,6 +21,9 @@ executable station
     Station.XML
     Station.Database
     Station.Database.User
+    Station.Database.User.Information
+    Station.Database.User.Add
+    Station.Database.User.Set
     Station.Database.Session
     Station.Database.Subject
     Station.Database.Course
@@ -31,7 +34,7 @@ executable station
     Station.HTTP
     Station.Web
     Station.Web.Tool
-    Station.Web.Session
+    Station.Web.Environment
     Station.Web.Login
     Station.Web.SysOp
     Station.Web.Learn

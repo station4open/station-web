@@ -30,7 +30,7 @@ import qualified Station.Database.Session as DB.Session
 import qualified Station.HTTP as HTTP
 import qualified Station.Web as Web
 import qualified Station.Web.Login as Login
-import qualified Station.Web.Session as Session
+import qualified Station.Web.Environment as Environment
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}
 
@@ -45,8 +45,8 @@ migration_path = "sql/migration"
 
 {- -------------------------------------------------------------------------------------------------------------------------- -}
 
-get_user :: DB.Connection -> Wai.Request -> IO (Maybe DB.User.Type)
-get_user database request =
+get_session :: DB.Connection -> Wai.Request -> IO (Maybe DB.User.Type)
+get_session database request =
 	case lookup Constant.session (HTTP.cookies request) of
 		Nothing -> return Nothing
 		Just token ->
@@ -92,14 +92,14 @@ main =
 					database <- DB.connectPostgreSQL (BS.C8.pack dburl)
 					let handle request respond =
 						do
-							user' <- get_user database request
+							user <- get_session database request
 							(HTTP.log log
 								$ Login.handle database
 								$ Web.handle
-									Session.Record{
-										Session.log = log,
-										Session.database = database,
-										Session.user = user'}
+									Environment.Record{
+										Environment.log = log,
+										Environment.database = database,
+										Environment.user = user}
 								$ Wai.Static.staticApp (Wai.Static.defaultWebAppSettings static_path))
 								request
 								respond

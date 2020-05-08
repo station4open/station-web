@@ -1,5 +1,5 @@
 module Station.HTTP (
-	log, respond_200, respond_500, respond_400, respond_401, respond_403, respond_404, respond_405, respond_409, respond_422,
+	log, respond_500, respond_400, respond_401, respond_403, respond_404, respond_405, respond_409, respond_422,
 	respond_redirect, respond_301, respond_303_headers, respond_303, respond_XML,
 	cookies, set_cookie_header
 ) where
@@ -46,10 +46,6 @@ log True  next request respond =
 		putChar ' '
 		BS.C8.putStrLn (Wai.rawPathInfo request)
 		next request respond
-
-respond_200 :: Wai.Application
-respond_200 _ respond =
-	respond (Wai.responseLBS HTTP.status200 [("Content-Type", "text/plain; charset=ASCII")] "OK")
 
 respond_500 :: String -> Wai.Application
 respond_500 message _ respond =

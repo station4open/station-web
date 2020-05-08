@@ -24,6 +24,9 @@ import qualified Station.Constant.Role as Constant.Role
 import qualified Station.XML as XML
 import qualified Station.Database as DB
 import qualified Station.Database.User as DB.User
+import qualified Station.Database.User.Information as DB.User.Information
+import qualified Station.Database.User.Add as DB.User.Add
+import qualified Station.Database.User.Set as DB.User.Set
 import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.Database.Lesson as DB.Lesson
@@ -31,29 +34,29 @@ import qualified Station.Database.Question as DB.Question
 import qualified Station.Database.Answer as DB.Answer
 import qualified Station.HTTP as HTTP
 import qualified Station.Web.Tool as Web.Tool
-import qualified Station.Web.Session as Session
+import qualified Station.Web.Environment as Environment
 
 path_prefix :: IsString s => s
 path_prefix = "/sysop/"
 
-handle_account :: Session.Type -> Wai.Application
+handle_account :: Environment.Type -> Wai.Application
 handle_account session request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		do
-			users <- DB.User.list (Session.database session)
+			users <- DB.User.Information.list (Environment.database session)
 			HTTP.respond_XML
 				(XML.xslt
 					(path_prefix <> "account.xsl")
-					(XML.element "account" []
-						(Web.Tool.user_XML (fromJust (Session.user session))
-							: map
-								(\ user ->
-									XML.element
-										"user"
-										((if DB.User.lock user then (("lock", "") :) else id)
-											[("role", show (DB.User.role user)), ("mark", show (DB.User.mark user))])
-										[XML.text (DB.User.name user)])
-								users)))
+					(XML.element "account" [] (
+						Web.Tool.user_XML (fromJust (Environment.user session)) :
+						map
+							(\ user ->
+								XML.element
+									"user"
+									((if DB.User.Information.lock user then (("lock", "") :) else id)
+										[("role", show (DB.User.Information.role user)), ("mark", show (DB.User.Information.mark user))])
+									[XML.text (DB.User.Information.name user)])
+							users)))
 				request
 				respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
@@ -65,13 +68,14 @@ handle_account session request respond
 					case readMaybe (BS.U8.toString role') of
 						Just role ->
 							let new =
-								DB.User.Record{
-									DB.User.name = BS.U8.toString name,
-									DB.User.role = role,
-									DB.User.password = BS.U8.toString password,
-									DB.User.mark = 0,
-									DB.User.lock = False}
-								in redirected =<< DB.User.add new (Session.database session)
+								DB.User.Add.Record{
+									DB.User.Add.name = BS.U8.toString name,
+									DB.User.Add.role = role,
+									DB.User.Add.password = BS.U8.toString password,
+									DB.User.Add.mark = 0,
+									DB.User.Add.lock = False,
+									DB.User.Add.avatar = Nothing}
+								in redirected =<< DB.User.add new (Environment.database session)
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
@@ -82,13 +86,17 @@ handle_account session request respond
 					case (readMaybe (BS.U8.toString role'), readMaybe (BS.U8.toString mark')) of
 						(Just role, Just mark) ->
 							let new =
-								DB.User.Record{
-									DB.User.name = BS.U8.toString name,
-									DB.User.role = role,
-									DB.User.password = BS.U8.toString password,
-									DB.User.mark = mark,
-									DB.User.lock = isJust lock}
-								in redirected =<< DB.User.set (BS.U8.toString user) new (Session.database session)
+								DB.User.Set.Record{
+									DB.User.Set.name = BS.U8.toString name,
+									DB.User.Set.role = role,
+									DB.User.Set.password =
+										case password of
+											"" -> Nothing
+											_ -> Just (BS.U8.toString password),
+									DB.User.Set.mark = mark,
+									DB.User.Set.lock = isJust lock,
+									DB.User.Set.avatar = Nothing}
+								in redirected =<< DB.User.set (BS.U8.toString user) new (Environment.database session)
 						_ ->
 							do
 								BS.C8.putStr "Incorrect role: "
@@ -96,7 +104,7 @@ handle_account session request respond
 								HTTP.respond_404 request respond
 				Just _ : Just user : _ ->
 					{- delete account -}
-					redirected =<< DB.User.delete (BS.U8.toString user) (Session.database session)
+					redirected =<< DB.User.delete (BS.U8.toString user) (Environment.database session)
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -104,23 +112,23 @@ handle_account session request respond
 		redirected True = HTTP.respond_303 (path_prefix <> "account") request respond
 		redirected False = HTTP.respond_404 request respond
 
-handle_subjects :: Session.Type -> Wai.Application
+handle_subjects :: Environment.Type -> Wai.Application
 handle_subjects session request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		do
-			subjects <- DB.Subject.list (Session.database session)
+			subjects <- DB.Subject.list (Environment.database session)
 			HTTP.respond_XML
 				(XML.xslt
 					(path_prefix <> "subjects.xsl")
-					(XML.element "subjects" []
-						(Web.Tool.user_XML (fromJust (Session.user session))
-							: map
-								(\ subject ->
-									XML.element "item" [] [
-										XML.element "identifier" [] [XML.text (show (DB.Subject.identifier subject))],
-										XML.element "title" [] [XML.text (DB.Subject.title subject)],
-										XML.element "description" [] [XML.text (DB.Subject.description subject)]])
-								subjects)))
+					(XML.element "subjects" [] (
+						Web.Tool.user_XML (fromJust (Environment.user session)) :
+						map
+							(\ subject ->
+								XML.element "item" [] [
+									XML.element "identifier" [] [XML.text (show (DB.Subject.identifier subject))],
+									XML.element "title" [] [XML.text (DB.Subject.title subject)],
+									XML.element "description" [] [XML.text (DB.Subject.description subject)]])
+							subjects)))
 				request
 				respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
@@ -132,7 +140,7 @@ handle_subjects session request respond
 					BS.U8.toString <$> lookup "description" parameters)
 				of
 					(Just title, Just description) ->
-						DB.Subject.add title description (Session.database session) >>= \case
+						DB.Subject.add title description (Environment.database session) >>= \case
 							Nothing ->
 								HTTP.respond_404 request respond
 							Just identifier ->
@@ -141,18 +149,18 @@ handle_subjects session request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_subject :: Session.Type -> DB.Subject.Identifier -> Wai.Application
+handle_subject :: Environment.Type -> DB.Subject.Identifier -> Wai.Application
 handle_subject session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		DB.Subject.get identifier (Session.database session) >>= \case
+		DB.Subject.get identifier (Environment.database session) >>= \case
 			[subject] ->
 				do
-					courses <- DB.Course.list identifier (Session.database session)
+					courses <- DB.Course.list identifier (Environment.database session)
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "subject.xsl")
 							(XML.element "subject" [] [
-								Web.Tool.user_XML (fromJust (Session.user session)),
+								Web.Tool.user_XML (fromJust (Environment.user session)),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "title" [] [XML.text (DB.Subject.title subject)],
 								XML.element "description" [] [XML.text (DB.Subject.description subject)],
@@ -178,7 +186,7 @@ handle_subject session identifier request respond
 				of
 					(_, _, Just _) ->
 						do
-							_ <- DB.Subject.delete identifier (Session.database session)
+							_ <- DB.Subject.delete identifier (Environment.database session)
 							HTTP.respond_303 "../subjects" request respond
 					(Just title, Just description, Nothing) ->
 						let
@@ -189,7 +197,7 @@ handle_subject session identifier request respond
 									DB.Subject.description = description}
 							redirected True = HTTP.respond_303 (Wai.rawPathInfo request) request respond
 							redirected False = HTTP.respond_404 request respond
-							in redirected =<< DB.Subject.set subject (Session.database session)
+							in redirected =<< DB.Subject.set subject (Environment.database session)
 					_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -210,18 +218,18 @@ handle_course_new db subject request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_course :: Session.Type -> DB.Course.Identifier -> Wai.Application
+handle_course :: Environment.Type -> DB.Course.Identifier -> Wai.Application
 handle_course session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		DB.Course.get identifier (Session.database session) >>= \case
+		DB.Course.get identifier (Environment.database session) >>= \case
 			[course] ->
 				do
-					lessons <- DB.Lesson.list identifier (Session.database session)
+					lessons <- DB.Lesson.list identifier (Environment.database session)
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "course.xsl")
 							(XML.element "course" [] [
-								Web.Tool.user_XML (fromJust (Session.user session)),
+								Web.Tool.user_XML (fromJust (Environment.user session)),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "subject" [] [XML.text (show (DB.Course.subject course))],
 								XML.element "title" [] [XML.text (DB.Course.title course)],
@@ -243,7 +251,7 @@ handle_course session identifier request respond
 			case map (flip lookup parameters) ["subject", "title", "description", "delete"] of
 				[Just subject, _, _, Just _] ->
 					do
-						_ <- DB.Course.delete identifier (Session.database session)
+						_ <- DB.Course.delete identifier (Environment.database session)
 						HTTP.respond_303 ("../subject/" <> subject) request respond
 				[Just subject', Just title, Just description, Nothing] ->
 					case readMaybe (BS.U8.toString subject') of
@@ -256,7 +264,7 @@ handle_course session identifier request respond
 										DB.Course.title = BS.U8.toString title,
 										DB.Course.description = BS.U8.toString description}
 								in
-									DB.Course.set new (Session.database session) >>= \case
+									DB.Course.set new (Environment.database session) >>= \case
 										True -> HTTP.respond_303 (Wai.rawPathInfo request) request respond
 										False -> HTTP.respond_404 request respond
 						_ -> HTTP.respond_400 "Incorrect subject" request respond
@@ -297,18 +305,18 @@ handle_lesson_exchange db course request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_lesson :: Session.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_lesson :: Environment.Type -> DB.Lesson.Identifier -> Wai.Application
 handle_lesson session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		DB.Lesson.get identifier (Session.database session) >>= \case
+		DB.Lesson.get identifier (Environment.database session) >>= \case
 			[lesson] ->
 				do
-					questions <- DB.Question.list identifier (Session.database session)
+					questions <- DB.Question.list identifier (Environment.database session)
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "lesson.xsl")
 							(XML.element "lesson" [] [
-								Web.Tool.user_XML (fromJust (Session.user session)),
+								Web.Tool.user_XML (fromJust (Environment.user session)),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "number" [] [XML.text (show (DB.Lesson.number lesson))],
 								XML.element "course" [] [XML.text (show (DB.Lesson.course lesson))],
@@ -331,7 +339,7 @@ handle_lesson session identifier request respond
 			case map (flip lookup parameters) ["course", "number", "title", "content", "delete"] of
 				[Just course, _, _, _, Just _] ->
 					do
-						_ <- DB.Lesson.delete identifier (Session.database session)
+						_ <- DB.Lesson.delete identifier (Environment.database session)
 						HTTP.respond_303 ("../course/" <> course) request respond
 				[Just course', Just number', Just title, Just content, Nothing] ->
 					case (readMaybe (BS.U8.toString course'), readMaybe (BS.U8.toString number')) of
@@ -345,7 +353,7 @@ handle_lesson session identifier request respond
 										DB.Lesson.title = BS.U8.toString title,
 										DB.Lesson.content = BS.U8.toString content}
 								in
-									DB.Lesson.set new (Session.database session) >>= \case
+									DB.Lesson.set new (Environment.database session) >>= \case
 										True -> HTTP.respond_303 (Wai.rawPathInfo request) request respond
 										False -> HTTP.respond_409 "Fail to modify" request respond
 						_ -> HTTP.respond_400 "Incorrect course or number" request respond
@@ -386,18 +394,18 @@ handle_question_exchange db lesson request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_question :: Session.Type -> DB.Question.Identifier -> Wai.Application
+handle_question :: Environment.Type -> DB.Question.Identifier -> Wai.Application
 handle_question session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		DB.Question.get identifier (Session.database session) >>= \case
+		DB.Question.get identifier (Environment.database session) >>= \case
 			[question] ->
 				do
-					answers <- DB.Answer.list identifier (Session.database session)
+					answers <- DB.Answer.list identifier (Environment.database session)
 					HTTP.respond_XML
 						(XML.xslt
 							(path_prefix <> "question.xsl")
 							(XML.element "question" [] [
-								Web.Tool.user_XML (fromJust (Session.user session)),
+								Web.Tool.user_XML (fromJust (Environment.user session)),
 								XML.element "identifier" [] [XML.text (show identifier)],
 								XML.element "lesson" [] [XML.text (show (DB.Question.lesson question))],
 								XML.element "number" [] [XML.text (show (DB.Question.number question))],
@@ -419,10 +427,10 @@ handle_question session identifier request respond
 			case map (flip lookup parameters) ["lesson", "text", "delete"] of
 				[Just lesson, _, Just _] ->
 					do
-						_ <- DB.Question.delete identifier (Session.database session)
+						_ <- DB.Question.delete identifier (Environment.database session)
 						HTTP.respond_303 ("../lesson/" <> lesson) request respond
 				[_, Just text, Nothing] ->
-					DB.Question.set identifier (BS.U8.toString text) (Session.database session) >>= \case
+					DB.Question.set identifier (BS.U8.toString text) (Environment.database session) >>= \case
 						True -> HTTP.respond_303 (Wai.rawPathInfo request) request respond
 						False -> HTTP.respond_409 "Fail to modify" request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
@@ -445,7 +453,7 @@ handle_answer_new db question request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle_answer :: Session.Type -> DB.Answer.Identifier -> Wai.Application
+handle_answer :: Environment.Type -> DB.Answer.Identifier -> Wai.Application
 handle_answer session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
@@ -453,7 +461,7 @@ handle_answer session identifier request respond
 			case map (flip lookup parameters) ["question", "text", "mark", "delete"] of
 				[Just question, _, _, Just _] ->
 					do
-						_ <- DB.Answer.delete identifier (Session.database session)
+						_ <- DB.Answer.delete identifier (Environment.database session)
 						HTTP.respond_303 ("../question/" <> question) request respond
 				[Just question', Just text, Just mark', Nothing] ->
 					case (readMaybe (BS.U8.toString question'), readMaybe (BS.U8.toString mark')) of
@@ -466,7 +474,7 @@ handle_answer session identifier request respond
 										DB.Answer.text = BS.U8.toString text,
 										DB.Answer.mark = mark}
 								in
-									DB.Answer.set new (Session.database session) >>= \case
+									DB.Answer.set new (Environment.database session) >>= \case
 										True -> HTTP.respond_303 ("../question/" <> question') request respond
 										False -> HTTP.respond_404 request respond
 						_ -> HTTP.respond_400 "Incorrect question" request respond
@@ -474,56 +482,61 @@ handle_answer session identifier request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
-handle :: Session.Type -> [Data.Text.Text] -> Wai.Middleware
+handle :: Environment.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
 	case session of
-		Session.Record{Session.user = Just DB.User.Record{DB.User.role = Constant.Role.SysOp}, Session.database = db} ->
-			case path of
-				["account"] -> handle_account session request respond
-				["subjects"] -> handle_subjects session request respond
-				["subject", subject'] ->
-					case readMaybe (Data.Text.unpack subject') of
-						Just subject -> handle_subject session subject request respond
-						_ -> next request respond
-				["course", "new", subject'] ->
-					case readMaybe (Data.Text.unpack subject') of
-						Just subject -> handle_course_new db subject request respond
-						_ -> next request respond
-				["course", course'] ->
-					case readMaybe (Data.Text.unpack course') of
-						Just course -> handle_course session course request respond
-						_ -> next request respond
-				["lesson", "new", course'] ->
-					case readMaybe (Data.Text.unpack course') of
-						Just course -> handle_lesson_new db course request respond
-						_ -> next request respond
-				["lesson", "exchange", course'] ->
-					case readMaybe (Data.Text.unpack course') of
-						Just course -> handle_lesson_exchange db course request respond
-						_ -> next request respond
-				["lesson", lesson'] ->
-					case readMaybe (Data.Text.unpack lesson') of
-						Just lesson -> handle_lesson session lesson request respond
-						_ -> next request respond
-				["question", "new", lesson'] ->
-					case readMaybe (Data.Text.unpack lesson') of
-						Just lesson -> handle_question_new db lesson request respond
-						_ -> next request respond
-				["question", "exchange", lesson'] ->
-					case readMaybe (Data.Text.unpack lesson') of
-						Just lesson -> handle_question_exchange db lesson request respond
-						_ -> next request respond
-				["question", question'] ->
-					case readMaybe (Data.Text.unpack question') of
-						Just question -> handle_question session question request respond
-						_ -> next request respond
-				["answer", "new", question'] ->
-					case readMaybe (Data.Text.unpack question') of
-						Just question -> handle_answer_new db question request respond
-						_ -> next request respond
-				["answer", answer'] ->
-					case readMaybe (Data.Text.unpack answer') of
-						Just answer -> handle_answer session answer request respond
-						_ -> next request respond
-				_ -> next request respond
+		Environment.Record{
+			Environment.user =
+				Just DB.User.Record{
+					DB.User.role = Constant.Role.SysOp},
+			Environment.database = db}
+			->
+				case path of
+					["account"] -> handle_account session request respond
+					["subjects"] -> handle_subjects session request respond
+					["subject", subject'] ->
+						case readMaybe (Data.Text.unpack subject') of
+							Just subject -> handle_subject session subject request respond
+							_ -> next request respond
+					["course", "new", subject'] ->
+						case readMaybe (Data.Text.unpack subject') of
+							Just subject -> handle_course_new db subject request respond
+							_ -> next request respond
+					["course", course'] ->
+						case readMaybe (Data.Text.unpack course') of
+							Just course -> handle_course session course request respond
+							_ -> next request respond
+					["lesson", "new", course'] ->
+						case readMaybe (Data.Text.unpack course') of
+							Just course -> handle_lesson_new db course request respond
+							_ -> next request respond
+					["lesson", "exchange", course'] ->
+						case readMaybe (Data.Text.unpack course') of
+							Just course -> handle_lesson_exchange db course request respond
+							_ -> next request respond
+					["lesson", lesson'] ->
+						case readMaybe (Data.Text.unpack lesson') of
+							Just lesson -> handle_lesson session lesson request respond
+							_ -> next request respond
+					["question", "new", lesson'] ->
+						case readMaybe (Data.Text.unpack lesson') of
+							Just lesson -> handle_question_new db lesson request respond
+							_ -> next request respond
+					["question", "exchange", lesson'] ->
+						case readMaybe (Data.Text.unpack lesson') of
+							Just lesson -> handle_question_exchange db lesson request respond
+							_ -> next request respond
+					["question", question'] ->
+						case readMaybe (Data.Text.unpack question') of
+							Just question -> handle_question session question request respond
+							_ -> next request respond
+					["answer", "new", question'] ->
+						case readMaybe (Data.Text.unpack question') of
+							Just question -> handle_answer_new db question request respond
+							_ -> next request respond
+					["answer", answer'] ->
+						case readMaybe (Data.Text.unpack answer') of
+							Just answer -> handle_answer session answer request respond
+							_ -> next request respond
+					_ -> next request respond
 		_ -> HTTP.respond_403 request respond

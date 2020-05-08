@@ -46,7 +46,7 @@ get session_token db =
 			DB.query
 				db
 				[sql|
-					SELECT "TOKEN","TIME","NAME","PASSWORD","ROLE","MARK","LOCK"
+					SELECT "TOKEN","TIME","NAME","PASSWORD","ROLE","MARK","LOCK","AVATAR"
 						FROM "SESSION"
 						INNER JOIN "USER" ON "SESSION"."USER"="USER"."NAME"
 						WHERE "TOKEN"=? |]
