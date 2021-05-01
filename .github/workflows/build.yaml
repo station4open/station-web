@@ -31,3 +31,18 @@ jobs:
           context: .
           push: true
           tags: nandiheath/station-web:latest
+  deploy:
+    needs:
+      - docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/aks-set-context@v1
+        with:
+          creds: '${{ secrets.AZURE_CREDENTIALS }}' # Azure credentials
+          resource-group: 'DefaultResourceGroup-SEA'
+          cluster-name: 'g0vcluster'
+        id: login
+      - name: 'kubectl delete pods'
+        run: |
+          kubectl delete pods -n g0v-system -l app=station-web
+
