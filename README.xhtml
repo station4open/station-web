@@ -1,19 +1,17 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <html xmlns='http://www.w3.org/1999/xhtml'>
-<head><title>Read me</title></head>
+<head>
+	<title>Read me</title>
+</head>
 <body>
 	<section>
-		<h1>
-			Introduction
-		</h1>
+		<h1>Introduction</h1>
 		<p>
 			This is the website of Station.
 		</p>
 	</section>
 	<section>
-		<h1>
-			Installation
-		</h1>
+		<h1>Installation</h1>
 		<p>
 			Install database <a href="https://www.postgresql.org/">PostgreSQL</a>.
 		</p>
@@ -23,9 +21,7 @@
 		</p>
 	</section>
 	<section>
-		<h1>
-			Environment variables
-		</h1>
+		<h1>Environment variables</h1>
 		<p>
 			<table>
 				<thead>
@@ -58,24 +54,39 @@
 		</p>
 	</section>
 	<section>
-		<h1>
-			Initialize database
-		</h1>
-		<p>
-			Command line:
-			<br/>
+		<h1>Initialize database</h1>
+		<blockquote>
 			<code>psql $DATABASE_URL &lt; sql/setup.sql</code>
-		</p>
+		</blockquote>
 	</section>
 	<section>
-		<h1>
-			Execution
-		</h1>
-		<p>
-			Command line:
-			<br/>
+		<h1>Build</h1>
+		<blockquote>
+			<code>cabal v2-build</code>
+		</blockquote>
+	</section>
+	<section>
+		<h1>Execution</h1>
+		<blockquote>
 			<code>cabal v2-run</code>
-		</p>
+		</blockquote>
+	</section>
+	<section>
+		<h1>Other Commands</h1>
+		<dl>
+			<dt>Help text</dt>
+			<dd>
+				<code>cabal v2-run help</code>
+			</dd>
+			<dt>Database migration</dt>
+			<dd>
+				<code>cabal v2-run migrate</code>
+			</dd>
+			<dt>Add user</dt>
+			<dd>
+				<code>cabal v2-run adduser {username} {password} {role}</code>
+			</dd>
+		</dl>
 	</section>
 </body>
 </html>
