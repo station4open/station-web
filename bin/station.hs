@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Main (main) where
 
 import Prelude (fromEnum)
@@ -22,6 +24,7 @@ import qualified Network.Wai.Application.Static as Wai.Static
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified Database.PostgreSQL.Simple as DB
 import qualified Database.PostgreSQL.Simple.Types as DB (Query (Query))
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 
 import qualified Station.Constant as Constant
 import qualified Station.Constant.Role as Constant.Role
@@ -59,7 +62,7 @@ migrate :: DB.Connection -> IO ()
 migrate database =
 	do
 		files <- listDirectory migration_path
-		only_done <- DB.query_ database "SELECT \"FILE\" FROM \"MIGRATION\" ORDER BY \"FILE\""
+		only_done <- DB.query_ database [sql| SELECT "FILE" FROM "MIGRATION" ORDER BY "FILE" |]
 		let
 			done = DB.fromOnly <$> only_done
 			todo = sort (files \\ done)
@@ -67,9 +70,9 @@ migrate database =
 			loop (f : fs) =
 				do
 					putStrLn ("migrate: " ++ f)
-					sql <- BS.readFile (migration_path </> f)
-					_ <- DB.execute_ database (DB.Query sql)
-					inserted <- DB.execute database "INSERT INTO \"MIGRATION\" (\"FILE\") VALUES (?)" (DB.Only f)
+					migration <- BS.readFile (migration_path </> f)
+					_ <- DB.execute_ database (DB.Query migration)
+					inserted <- DB.execute database [sql| INSERT INTO "MIGRATION" ("FILE") VALUES (?) |] (DB.Only f)
 					case inserted of
 						1 -> loop fs
 						_ -> putStrLn "ERROR: unable modify migration record"
@@ -113,7 +116,7 @@ main =
 							n <-
 								DB.execute
 									database
-									"INSERT INTO \"USER\"(\"NAME\",\"PASSWORD\",\"ROLE\") VALUES(?,?,?)"
+									[sql| INSERT INTO "USER"("NAME","PASSWORD","ROLE") VALUES(?,?,?) |]
 									(username, Crypto.Scrypt.getEncryptedPass encrypted, fromEnum (role :: Constant.Role.Type))
 							case n of
 								1 ->
