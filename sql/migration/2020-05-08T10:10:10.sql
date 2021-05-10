@@ -1,7 +1,0 @@
--- Add avatar to user
-
-BEGIN WORK;
-
-ALTER TABLE "USER" ADD COLUMN "AVATAR" BYTEA;
-
-END WORK;
