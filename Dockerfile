@@ -18,7 +18,4 @@ RUN cabal install
 # copy probably web related stuff
 COPY . .
 
-# run migration
-RUN cabal v2-run station migrate
-
 CMD ["cabal", "v2-run"]
