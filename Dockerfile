@@ -18,4 +18,4 @@ RUN cabal install
 # copy probably web related stuff
 COPY . .
 
-CMD ["./start.sh"]
+CMD ["./startup.sh"]
