@@ -45,4 +45,3 @@ jobs:
       - name: 'kubectl delete pods'
         run: |
           kubectl delete pods -n g0v-system -l app=station-web
-
