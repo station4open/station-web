@@ -2,4 +2,4 @@
 
 cabal v2-run station migrate
 
-cabak v2-run
+cabal v2-run
