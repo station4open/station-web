@@ -32,8 +32,8 @@
 						</a>
 					</div>
 					<div class='sponsor'>
-						<a href='https://www.eatonworkshop.com/hotel/hong-kong'>
-							<img class='vice-sponsor' src='/eaton_logo_black.png'/>
+						<a href='https://collaction.hk/h/station'>
+							<img class='vice-sponsor' src='/station_logo_black.png'/>
 						</a>
 					</div>
 				</div>
@@ -93,9 +93,9 @@
 		</div>
 		<div class='menu-content'>
 			<ul>
-				<li><a href='/learn'>Tree of Knowledge</a></li>
-				<li><a href='https://www.collaction.hk/s/station/'>Station</a></li>
-				<li><a href='https://www.eatonworkshop.com/hotel/hong-kong'>EatonHK</a></li>
+				<li><a href='/learn'>Slimemold</a></li>
+				<li><a href='https://www.collaction.hk/h/station/'>Station</a></li>
+				<li><a href='https://collaction.hk/s/station/fund'>Donate to Station</a></li>
 				<li><a href='https://g0vhk.io/'>g0vhk</a></li>
 				<li><a href='/account'>My Account</a></li>
 				<xsl:if test='session/role="SysOp"'>
