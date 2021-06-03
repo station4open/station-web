@@ -6,7 +6,7 @@ description:   Website of Station
 category:      Web
 author:        LEE Chun Kin
 copyright:     2019, LEE Chun Kin
-license:       GPL-2
+license:       GPL-3.0-only
 build-type:    Simple
 
 executable station
