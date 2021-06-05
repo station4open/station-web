@@ -387,7 +387,7 @@ handle_embed_new db lesson request respond
 							let
 								title' = BS.U8.toString title
 								file' = BS.L.toStrict (Wai.Parse.fileContent file)
-								url = "../lesson/" <> BS.U8.fromString (show lesson)
+								url = "../../lesson/" <> BS.U8.fromString (show lesson)
 								in
 								DB.Embed.add lesson title' kind file' db >>= \case
 									Nothing -> HTTP.respond_404 request respond
