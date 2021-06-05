@@ -14,6 +14,7 @@ import Control.Monad ((>>=))
 import Text.Show (show)
 import Text.Read (readMaybe)
 import qualified Data.ByteString.UTF8 as BS.U8
+import qualified Data.ByteString.Lazy as BS.L
 import qualified Data.Text (Text, unpack)
 import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
@@ -24,6 +25,8 @@ import qualified Station.Database.User as DB.User
 import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.Database.Lesson as DB.Lesson
+import qualified Station.Database.Embed as DB.Embed
+import qualified Station.Database.Embed.Kind as DB.Embed.Kind
 import qualified Station.Database.Question as DB.Question
 import qualified Station.Database.Answer as DB.Answer
 import qualified Station.Database.Work as DB.Work
@@ -170,6 +173,31 @@ handle_lesson session@Environment.Record{Environment.user = Just user} lesson_id
 handle_lesson _ _ request respond =
 	HTTP.respond_405 request respond
 
+handle_embed :: Environment.Type -> DB.Embed.Identifier -> Wai.Application
+handle_embed session identifier request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
+		DB.Embed.get identifier (Environment.database session) >>= \case
+			[embed]
+				| DB.Embed.kind embed == DB.Embed.Kind.png ->
+					respond
+						(Wai.responseLBS
+							Network.HTTP.Types.status200
+							[("Content-Type", "image/png")]
+							(BS.L.fromStrict (DB.Embed.value embed)))
+				| DB.Embed.kind embed == DB.Embed.Kind.jpeg ->
+					respond
+						(Wai.responseLBS
+							Network.HTTP.Types.status200
+							[("Content-Type", "image/png")]
+							(BS.L.fromStrict (DB.Embed.value embed)))
+				| DB.Embed.kind embed == DB.Embed.Kind.youtube ->
+					-- TODO
+					HTTP.respond_500 "TODO" request respond
+			[_] -> HTTP.respond_500 "Unknown embed kind" request respond
+			_ -> HTTP.respond_400 "Incorrect identifier" request respond
+handle_embed _ _ request respond =
+		HTTP.respond_405 request respond
+
 handle :: Environment.Type -> [Data.Text.Text] -> Wai.Middleware
 handle session path next request respond =
 	case path of
@@ -186,4 +214,8 @@ handle session path next request respond =
 			case readMaybe (Data.Text.unpack lesson') of
 				Just lesson -> handle_lesson session lesson request respond
 				_ -> HTTP.respond_404 request respond
+		["embed", embed'] ->
+			case readMaybe (Data.Text.unpack embed') of
+				Just embed -> handle_embed session embed request respond
+				_ -> next request respond
 		_ -> next request respond

@@ -51,6 +51,50 @@
 				</form>
 			</section>
 			<section>
+				<h1>Embed</h1>
+				<form method='POST' enctype='multipart/form-data'>
+					<xsl:attribute name='action'>../embed/new/<xsl:value-of select='identifier'/></xsl:attribute>
+					<fieldset>
+						<legend>Upload File</legend>
+						<label>
+							Title:
+							<input type='text' name='title'/>
+						</label>
+						<label>
+							PNG or JPEG file:
+							<input type='file' name='file' required='' accept='image/png, image/jpeg'/>
+						</label>
+						<button type='submit'>Submit</button>
+					</fieldset>
+				</form>
+				<form method='POST'>
+					<xsl:attribute name='action'>../embed/new/<xsl:value-of select='identifier'/></xsl:attribute>
+					<fieldset>
+						<legend>YouTube video</legend>
+						<label>
+							Title:
+							<input type='text' name='title'/>
+						</label>
+						<label>
+							Link:
+							<input type='text' name='youtube' required=''/>
+						</label>
+						<button type='submit'>Submit</button>
+					</fieldset>
+				</form>
+			</section>
+			<section>
+				<h1>Modify Embed</h1>
+				<xsl:for-each select='embeds/embed'>
+					<div>
+						<embed>
+							<xsl:attribute name='src'>/learn/embed/<xsl:value-of select='identifier'/></xsl:attribute>
+						</embed>
+						<xsl:value-of select='title'/>
+					</div>
+				</xsl:for-each>
+			</section>
+			<section>
 				<h1>Create question</h1>
 				<form method='POST'>
 					<xsl:attribute name='action'>../question/new/<xsl:value-of select='identifier'/></xsl:attribute>

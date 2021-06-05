@@ -9,12 +9,13 @@ import Data.Monoid ((<>))
 import Data.List (map, lookup)
 import Data.Function (id, (.), flip)
 import Data.Functor ((<$>))
+import qualified Data.ByteString.Char8 as BS.C8
+import qualified Data.ByteString.UTF8 as BS.U8
+import qualified Data.ByteString.Lazy as BS.L
 import Data.String (IsString)
 import Control.Monad ((>>=), (=<<))
 import Text.Show (show)
 import Text.Read (readMaybe)
-import qualified Data.ByteString.Char8 as BS.C8
-import qualified Data.ByteString.UTF8 as BS.U8
 import qualified Data.Text (Text, unpack)
 import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
@@ -30,6 +31,9 @@ import qualified Station.Database.User.Set as DB.User.Set
 import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.Database.Lesson as DB.Lesson
+import qualified Station.Database.Embed as DB.Embed
+import qualified Station.Database.Embed.Kind as DB.Embed.Kind
+import qualified Station.Database.Embed.Information as DB.Embed.Information
 import qualified Station.Database.Question as DB.Question
 import qualified Station.Database.Answer as DB.Answer
 import qualified Station.HTTP as HTTP
@@ -311,6 +315,7 @@ handle_lesson session identifier request respond
 		DB.Lesson.get identifier (Environment.database session) >>= \case
 			[lesson] ->
 				do
+					embeds <- DB.Embed.Information.list identifier (Environment.database session)
 					questions <- DB.Question.list identifier (Environment.database session)
 					HTTP.respond_XML
 						(XML.xslt
@@ -322,6 +327,15 @@ handle_lesson session identifier request respond
 								XML.element "course" [] [XML.text (show (DB.Lesson.course lesson))],
 								XML.element "title" [] [XML.text (DB.Lesson.title lesson)],
 								XML.element "content" [] [XML.text (DB.Lesson.content lesson)],
+								XML.element "embeds" []
+									(map
+										(\ embed ->
+											XML.element "embed" [] [
+												XML.element "identifier" [] [XML.text (show (DB.Embed.Information.identifier embed))],
+												XML.element "number" [] [XML.text (show (DB.Embed.Information.number embed))],
+												XML.element "title" [] [XML.text (DB.Embed.Information.title embed)],
+												XML.element "kind" [] [XML.text (show (DB.Embed.Information.kind embed))]])
+										embeds),
 								XML.element "questions" []
 									(map
 										(\ question ->
@@ -357,6 +371,35 @@ handle_lesson session identifier request respond
 										True -> HTTP.respond_303 (Wai.rawPathInfo request) request respond
 										False -> HTTP.respond_409 "Fail to modify" request respond
 						_ -> HTTP.respond_400 "Incorrect course or number" request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
+handle_embed_new :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
+handle_embed_new db lesson request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			(parameters, files) <- Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case (lookup "title" parameters, lookup "file" files, lookup "youtube" parameters) of
+				(Just title, Just file, _) ->
+					let
+						add kind =
+							let
+								title' = BS.U8.toString title
+								file' = BS.L.toStrict (Wai.Parse.fileContent file)
+								url = "../lesson/" <> BS.U8.fromString (show lesson)
+								in
+								DB.Embed.add lesson title' kind file' db >>= \case
+									Nothing -> HTTP.respond_404 request respond
+									_ -> HTTP.respond_303 url request respond
+						in
+						case Wai.Parse.fileContentType file of
+							"image/png" -> add DB.Embed.Kind.png
+							"image/jpeg" -> add DB.Embed.Kind.jpeg
+							_ -> HTTP.respond_400 "Incorrect file type" request respond
+				(Just title, _, Just youtube) ->
+					-- TODO
+					HTTP.respond_500 "TODO" request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond
@@ -517,6 +560,10 @@ handle session path next request respond =
 					["lesson", lesson'] ->
 						case readMaybe (Data.Text.unpack lesson') of
 							Just lesson -> handle_lesson session lesson request respond
+							_ -> next request respond
+					["embed", "new", lesson'] ->
+						case readMaybe (Data.Text.unpack lesson') of
+							Just lesson -> handle_embed_new db lesson request respond
 							_ -> next request respond
 					["question", "new", lesson'] ->
 						case readMaybe (Data.Text.unpack lesson') of
