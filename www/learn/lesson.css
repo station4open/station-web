@@ -98,6 +98,10 @@ input[type=checkbox]:checked + .btn-swap{
 	white-space: -moz-pre-line; /* Firefox 1.0-2.0 */
 	white-space: pre-line;      /* current browsers */
 }
+.embed embed{
+	vertical-align: middle;
+	padding: 20px;
+}
 .question-text{
 	padding: 15px;
 	font-size: 13px;

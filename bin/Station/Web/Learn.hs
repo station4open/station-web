@@ -26,7 +26,7 @@ import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.Database.Lesson as DB.Lesson
 import qualified Station.Database.Embed as DB.Embed
-import qualified Station.Database.Embed.Kind as DB.Embed.Kind
+import qualified Station.Database.Embed.Information as DB.Embed.Information
 import qualified Station.Database.Question as DB.Question
 import qualified Station.Database.Answer as DB.Answer
 import qualified Station.Database.Work as DB.Work
@@ -120,7 +120,7 @@ handle_lesson :: Environment.Type -> DB.Lesson.Identifier -> Wai.Application
 handle_lesson session lesson_identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		DB.Work.get_lesson (DB.User.name <$> Environment.user session) lesson_identifier (Environment.database session) >>= \case
-			[(lesson, questions)] ->
+			[(lesson, embeds, questions)] ->
 				HTTP.respond_XML
 					(XML.xslt
 						(path_prefix <> "lesson.xsl")
@@ -132,6 +132,19 @@ handle_lesson session lesson_identifier request respond
 									XML.element "number" [] [XML.text (show (DB.Lesson.number lesson))],
 									XML.element "title" [] [XML.text (DB.Lesson.title lesson)],
 									XML.element "content" [] [XML.text (DB.Lesson.content lesson)],
+									XML.element "embeds" []
+										(map
+											(\ embed ->
+												XML.element "embed" [] [
+													XML.element "identifier" [] [
+														XML.text (show (DB.Embed.Information.identifier embed))],
+													XML.element "number" [] [
+														XML.text (show (DB.Embed.Information.number embed))],
+													XML.element "title" [] [
+														XML.text (DB.Embed.Information.title embed)],
+													XML.element "kind" [] [
+														XML.text (show (DB.Embed.Information.kind embed))]])
+											embeds),
 									XML.element "questions" []
 										(map
 											(\ (question, answers) ->
@@ -178,19 +191,19 @@ handle_embed session identifier request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
 		DB.Embed.get identifier (Environment.database session) >>= \case
 			[embed]
-				| DB.Embed.kind embed == DB.Embed.Kind.png ->
+				| DB.Embed.kind embed == DB.Embed.kind_png ->
 					respond
 						(Wai.responseLBS
 							Network.HTTP.Types.status200
 							[("Content-Type", "image/png")]
 							(BS.L.fromStrict (DB.Embed.value embed)))
-				| DB.Embed.kind embed == DB.Embed.Kind.jpeg ->
+				| DB.Embed.kind embed == DB.Embed.kind_jpeg ->
 					respond
 						(Wai.responseLBS
 							Network.HTTP.Types.status200
 							[("Content-Type", "image/png")]
 							(BS.L.fromStrict (DB.Embed.value embed)))
-				| DB.Embed.kind embed == DB.Embed.Kind.youtube ->
+				| DB.Embed.kind embed == DB.Embed.kind_youtube ->
 					-- TODO
 					HTTP.respond_500 "TODO" request respond
 			[_] -> HTTP.respond_500 "Unknown embed kind" request respond

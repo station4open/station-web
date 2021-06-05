@@ -3,6 +3,7 @@
 module
 	Station.Database.Embed (
 		Identifier, Number, Kind (Kind),
+		kind_png, kind_jpeg, kind_youtube,
 		Type (Record, identifier, lesson, number, title, kind, value),
 		get, delete, add, set, exchange
 	)
@@ -66,6 +67,15 @@ instance DB.ToField Kind where
 
 instance DB.FromField Kind where
 	fromField f x = Kind <$> DB.fromField f x
+
+kind_png :: Kind
+kind_png = Kind 1
+
+kind_jpeg :: Kind
+kind_jpeg = Kind 2
+
+kind_youtube :: Kind
+kind_youtube = Kind 101
 
 data Type =
 	Record{

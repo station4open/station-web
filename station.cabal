@@ -29,7 +29,6 @@ executable station
     Station.Database.Course
     Station.Database.Lesson
     Station.Database.Embed
-    Station.Database.Embed.Kind
     Station.Database.Embed.Information
     Station.Database.Question
     Station.Database.Answer

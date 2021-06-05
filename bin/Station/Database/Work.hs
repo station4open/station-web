@@ -23,6 +23,7 @@ import qualified Database.PostgreSQL.Simple.Transaction as DB
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 
 import qualified Station.Database.Lesson as DB.Lesson
+import qualified Station.Database.Embed.Information as DB.Embed.Information
 import qualified Station.Database.Question as DB.Question
 import qualified Station.Database.Answer as DB.Answer
 
@@ -117,14 +118,15 @@ get_lesson ::
 	Maybe String ->
 	DB.Lesson.Identifier ->
 	DB.Connection ->
-	IO [(DB.Lesson.Type, [(DB.Question.Type, [(Bool, DB.Answer.Type)])])]
+	IO [(DB.Lesson.Type, [DB.Embed.Information.Type], [(DB.Question.Type, [(Bool, DB.Answer.Type)])])]
 get_lesson Nothing lesson_identifier db =
 	DB.withTransactionMode
 		(DB.TransactionMode DB.ReadCommitted DB.ReadOnly)
 		db
 		(mapM
 			(\ lesson ->
-				(,) lesson <$>
+				(,,) lesson <$>
+					(DB.Embed.Information.list (DB.Lesson.identifier lesson) db) <*>
 					(mapM
 						(\ question ->
 							((,) question . map ((,) False)) <$>
@@ -144,7 +146,8 @@ get_lesson (Just user_name) lesson_identifier db =
 		db
 		(mapM
 			(\ lesson ->
-				(,) lesson <$>
+				(,,) lesson <$>
+					(DB.Embed.Information.list (DB.Lesson.identifier lesson) db) <*>
 					(mapM
 						(\ question ->
 							((,) question . map (\ (DB.Only w DB.:. a) -> (w, a))) <$>

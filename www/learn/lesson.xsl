@@ -49,6 +49,16 @@
 								</span>
 							</div>
 						</div>
+						<div class='content-embed content-content'>
+							<xsl:for-each select='embeds/embed'>
+								<div class='embed'>
+									<embed>
+										<xsl:attribute name='src'>/learn/embed/<xsl:value-of select='identifier'/></xsl:attribute>
+									</embed>
+									<xsl:value-of select='title'/>
+								</div>
+							</xsl:for-each>
+						</div>
 					</div>
 					<div class='container-question content-content'>
 						<div class='session-title'>

@@ -32,7 +32,6 @@ import qualified Station.Database.Subject as DB.Subject
 import qualified Station.Database.Course as DB.Course
 import qualified Station.Database.Lesson as DB.Lesson
 import qualified Station.Database.Embed as DB.Embed
-import qualified Station.Database.Embed.Kind as DB.Embed.Kind
 import qualified Station.Database.Embed.Information as DB.Embed.Information
 import qualified Station.Database.Question as DB.Question
 import qualified Station.Database.Answer as DB.Answer
@@ -394,8 +393,8 @@ handle_embed_new db lesson request respond
 									_ -> HTTP.respond_303 url request respond
 						in
 						case Wai.Parse.fileContentType file of
-							"image/png" -> add DB.Embed.Kind.png
-							"image/jpeg" -> add DB.Embed.Kind.jpeg
+							"image/png" -> add DB.Embed.kind_png
+							"image/jpeg" -> add DB.Embed.kind_jpeg
 							_ -> HTTP.respond_400 "Incorrect file type" request respond
 				(Just title, _, Just youtube) ->
 					-- TODO
