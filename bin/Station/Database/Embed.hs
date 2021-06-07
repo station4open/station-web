@@ -5,7 +5,7 @@ module
 		Identifier, Number, Kind (Kind),
 		kind_png, kind_jpeg, kind_youtube,
 		Type (Record, identifier, lesson, number, title, kind, value),
-		get, delete, add, set, exchange
+		get, delete, add, set_title, exchange
 	)
 where
 
@@ -14,13 +14,13 @@ import Data.Bool (Bool (True, False))
 import Data.Eq (Eq ((==), (/=)))
 import Data.Maybe (Maybe (Nothing, Just))
 import Control.Arrow (first)
+import Data.Functor (fmap, (<$>))
+import Control.Applicative ((<*>))
+import Control.Monad (return)
 import Data.List (map)
 import Data.Int (Int16, Int32)
 import Data.ByteString (ByteString)
 import Data.String (String)
-import Data.Functor (fmap, (<$>))
-import Control.Applicative ((<*>))
-import Control.Monad (return)
 import Text.Show (Show, show)
 import Text.Read (Read, readsPrec)
 import System.IO (IO)
@@ -167,14 +167,14 @@ add embed_lesson embed_title embed_kind embed_value db =
 					RETURNING "IDENTIFIER" |]
 				(embed_lesson, embed_lesson, embed_title, embed_kind, (DB.Binary embed_value))))
 
-set :: Identifier -> String -> Kind -> ByteString -> DB.Connection -> IO Bool
-set embed_identifier embed_title embed_kind embed_value db =
+set_title :: Identifier -> String -> DB.Connection -> IO Bool
+set_title embed_identifier embed_title db =
 	(1 ==)
 		<$>
 			DB.execute
 				db
-				[sql| UPDATE "EMBED" SET "TITLE"=?,"KIND"=?,"VALUE"=? WHERE "IDENTIFIER"=? |]
-				(embed_title, embed_kind, embed_value, embed_identifier)
+				[sql| UPDATE "EMBED" SET "TITLE"=? WHERE "IDENTIFIER"=? |]
+				(embed_title, embed_identifier)
 
 exchange :: Identifier -> Identifier -> DB.Connection -> IO Bool
 exchange embed_1 embed_2 db =

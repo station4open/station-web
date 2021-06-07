@@ -13,6 +13,16 @@
 			<link rel="stylesheet" type="text/css" href="../base.css"/>
 			<link rel="stylesheet" type="text/css" href="/base.css"/>
 			<script type='application/ecmascript' src='../delete_disable.js' async=''/>
+			<style>
+				p {
+					border-style: double;
+					padding: 1ex;
+				}
+				p > form {
+					display: inline;
+					margin-right: 1ex;
+				}
+			</style>
 		</head>
 		<body>
 			<xsl:call-template name='menubar'/>
@@ -85,13 +95,83 @@
 			</section>
 			<section>
 				<h1>Modify Embed</h1>
-				<xsl:for-each select='embeds/embed'>
-					<div>
-						<embed>
-							<xsl:attribute name='src'>/learn/embed/<xsl:value-of select='identifier'/></xsl:attribute>
-						</embed>
-						<xsl:value-of select='title'/>
-					</div>
+					<xsl:for-each select='embeds/embed'>
+					<p>
+						<form method='POST'>
+							<xsl:attribute name='action'>
+								../embed/<xsl:value-of select='identifier'/>
+							</xsl:attribute>
+							<input type='hidden' name='lesson'>
+								<xsl:attribute name='value'>
+									<xsl:value-of select='../../identifier'/>
+								</xsl:attribute>
+							</input>
+							<input type='hidden' name='delete'/>
+							<button type='submit'>Delete</button>
+						</form>
+						<xsl:if test='number>1'>
+							<form method='POST'>
+								<xsl:attribute name='action'>
+									../embed/<xsl:value-of select='identifier'/>
+								</xsl:attribute>
+								<input type='hidden' name='lesson'>
+									<xsl:attribute name='value'>
+										<xsl:value-of select='../../identifier'/>
+									</xsl:attribute>
+								</input>
+								<input type='hidden' name='exchange'>
+									<xsl:attribute name='value'>
+										<xsl:value-of select='preceding-sibling::*[1]/identifier'/>
+									</xsl:attribute>
+								</input>
+								<button type='submit'>↑</button>
+							</form>
+						</xsl:if>
+						<xsl:if test='count(../embed)>number'>
+							<form method='POST'>
+								<xsl:attribute name='action'>
+									../embed/<xsl:value-of select='identifier'/>
+								</xsl:attribute>
+								<input type='hidden' name='lesson'>
+									<xsl:attribute name='value'>
+										<xsl:value-of select='../../identifier'/>
+									</xsl:attribute>
+								</input>
+								<input type='hidden' name='exchange'>
+									<xsl:attribute name='value'>
+										<xsl:value-of select='following-sibling::*[1]/identifier'/>
+									</xsl:attribute>
+								</input>
+								<button type='submit'>↓</button>
+							</form>
+						</xsl:if>
+						<form method='POST'>
+							<xsl:attribute name='action'>
+								../embed/<xsl:value-of select='identifier'/>
+							</xsl:attribute>
+							<input type='hidden' name='lesson'>
+								<xsl:attribute name='value'>
+									<xsl:value-of select='../../identifier'/>
+								</xsl:attribute>
+							</input>
+							<input type='text' name='title'>
+								<xsl:attribute name='value'>
+									<xsl:value-of select='title'/>
+								</xsl:attribute>
+							</input>
+							<button type='submit'>Change</button>
+						</form>
+						<br/>
+						<xsl:choose>
+							<xsl:when test='kind=1 or kind=2'>
+								<td colspan='4'>
+									<img>
+										<xsl:attribute name='src'>/learn/embed/<xsl:value-of select='identifier'/></xsl:attribute>
+									</img>
+								</td>
+							</xsl:when>
+						</xsl:choose>
+					</p>
 				</xsl:for-each>
 			</section>
 			<section>

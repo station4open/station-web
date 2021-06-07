@@ -403,6 +403,32 @@ handle_embed_new db lesson request respond
 	| otherwise =
 		HTTP.respond_405 request respond
 
+handle_embed :: DB.Type -> DB.Embed.Identifier -> Wai.Application
+handle_embed db identifier request respond
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			let respond_ok lesson = HTTP.respond_303 ("../lesson/" <> lesson) request respond
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case map (flip lookup parameters) ["lesson", "delete", "exchange", "title"] of
+				[Just lesson, Just _, _, _] ->
+					do
+						_ <- DB.Embed.delete identifier db
+						respond_ok lesson
+				[Just lesson, Nothing, Just exchange', _] ->
+					case readMaybe (BS.U8.toString exchange') of
+						Just exchange ->
+							DB.Embed.exchange identifier exchange db >>= \case
+								True -> respond_ok lesson
+								False -> HTTP.respond_409 "Fail to re-order" request respond
+						_ -> HTTP.respond_400 "Incorrect identifiers" request respond
+				[Just lesson, Nothing, _, Just title] ->
+					DB.Embed.set_title identifier (BS.U8.toString title) db >>= \case
+						True -> respond_ok lesson
+						False -> HTTP.respond_409 "Fail to modify" request respond
+				_ -> HTTP.respond_400 "Incorrect form field" request respond
+	| otherwise =
+		HTTP.respond_405 request respond
+
 handle_question_new :: DB.Type -> DB.Lesson.Identifier -> Wai.Application
 handle_question_new db lesson request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
@@ -563,6 +589,10 @@ handle session path next request respond =
 					["embed", "new", lesson'] ->
 						case readMaybe (Data.Text.unpack lesson') of
 							Just lesson -> handle_embed_new db lesson request respond
+							_ -> next request respond
+					["embed", embed'] ->
+						case readMaybe (Data.Text.unpack embed') of
+							Just embed -> handle_embed db embed request respond
 							_ -> next request respond
 					["question", "new", lesson'] ->
 						case readMaybe (Data.Text.unpack lesson') of
