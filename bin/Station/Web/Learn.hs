@@ -2,7 +2,7 @@ module Station.Web.Learn (handle) where
 
 import Prelude ()
 import Data.Eq ((==))
-import Data.Maybe (Maybe (Just), maybeToList, catMaybes)
+import Data.Maybe (Maybe (Nothing, Just), maybeToList, catMaybes)
 import Data.Tuple (fst, snd)
 import Data.Monoid ((<>))
 import Data.Function ((.))
@@ -143,7 +143,10 @@ handle_lesson session lesson_identifier request respond
 													XML.element "title" [] [
 														XML.text (DB.Embed.Information.title embed)],
 													XML.element "kind" [] [
-														XML.text (show (DB.Embed.Information.kind embed))]])
+														XML.text (show (DB.Embed.Information.kind embed))],
+													(case DB.Embed.Information.value embed of
+														Nothing -> XML.element "value" [] []
+														Just value -> XML.element "value" [] [XML.text (BS.U8.toString value)])])
 											embeds),
 									XML.element "questions" []
 										(map

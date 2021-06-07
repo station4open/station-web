@@ -338,7 +338,7 @@ handle_lesson session identifier request respond
 												XML.element "kind" [] [XML.text (show (DB.Embed.Information.kind embed))],
 												(case DB.Embed.Information.value embed of
 													Nothing -> XML.element "value" [] []
-													Just value -> XML.element "value" [] [XML.text (show value)])])
+													Just value -> XML.element "value" [] [XML.text (BS.U8.toString value)])])
 										embeds),
 								XML.element "questions" []
 									(map
