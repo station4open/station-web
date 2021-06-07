@@ -41,7 +41,7 @@ executable station
     Station.Web.SysOp
     Station.Web.Learn
   build-depends:
-    base,
+    base >= 4.10.0 && < 5,
     bytestring,
     binary,
     utf8-string,
@@ -51,6 +51,7 @@ executable station
     xml,
     scrypt,
     text,
+    url,
     http-types,
     cookie,
     wai,

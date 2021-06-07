@@ -16,7 +16,9 @@ import Data.String (IsString)
 import Control.Monad ((>>=), (=<<))
 import Text.Show (show)
 import Text.Read (readMaybe)
+import System.IO (print)
 import qualified Data.Text (Text, unpack)
+import qualified Network.URL as URL
 import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Parse as Wai.Parse
@@ -333,7 +335,10 @@ handle_lesson session identifier request respond
 												XML.element "identifier" [] [XML.text (show (DB.Embed.Information.identifier embed))],
 												XML.element "number" [] [XML.text (show (DB.Embed.Information.number embed))],
 												XML.element "title" [] [XML.text (DB.Embed.Information.title embed)],
-												XML.element "kind" [] [XML.text (show (DB.Embed.Information.kind embed))]])
+												XML.element "kind" [] [XML.text (show (DB.Embed.Information.kind embed))],
+												(case DB.Embed.Information.value embed of
+													Nothing -> XML.element "value" [] []
+													Just value -> XML.element "value" [] [XML.text (show value)])])
 										embeds),
 								XML.element "questions" []
 									(map
@@ -379,6 +384,7 @@ handle_embed_new db lesson request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
 			(parameters, files) <- Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			let response_ok = HTTP.respond_303 ("../../lesson/" <> BS.U8.fromString (show lesson)) request respond
 			case (lookup "title" parameters, lookup "file" files, lookup "youtube" parameters) of
 				(Just title, Just file, _) ->
 					let
@@ -386,19 +392,27 @@ handle_embed_new db lesson request respond
 							let
 								title' = BS.U8.toString title
 								file' = BS.L.toStrict (Wai.Parse.fileContent file)
-								url = "../../lesson/" <> BS.U8.fromString (show lesson)
 								in
 								DB.Embed.add lesson title' kind file' db >>= \case
 									Nothing -> HTTP.respond_404 request respond
-									_ -> HTTP.respond_303 url request respond
+									_ -> response_ok
 						in
 						case Wai.Parse.fileContentType file of
 							"image/png" -> add DB.Embed.kind_png
 							"image/jpeg" -> add DB.Embed.kind_jpeg
 							_ -> HTTP.respond_400 "Incorrect file type" request respond
 				(Just title, _, Just youtube) ->
-					-- TODO
-					HTTP.respond_500 "TODO" request respond
+					case lookup "v" =<< URL.url_params <$> URL.importURL (BS.U8.toString youtube) of
+						Just v ->
+							do
+								print v
+								let
+									title' = BS.U8.toString title
+									v' = BS.U8.fromString v
+								DB.Embed.add lesson title' DB.Embed.kind_youtube v' db >>= \case
+									Nothing -> HTTP.respond_404 request respond
+									_ -> response_ok
+						_ -> HTTP.respond_400 "Incorrect YouTube link" request respond
 				_ -> HTTP.respond_400 "Incorrect form field" request respond
 	| otherwise =
 		HTTP.respond_405 request respond

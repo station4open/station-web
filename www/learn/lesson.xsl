@@ -52,9 +52,24 @@
 						<div class='content-embed content-content'>
 							<xsl:for-each select='embeds/embed'>
 								<div class='embed'>
-									<embed>
-										<xsl:attribute name='src'>/learn/embed/<xsl:value-of select='identifier'/></xsl:attribute>
-									</embed>
+									<xsl:choose>
+										<xsl:when test='kind=1 or kind=2'>
+											<img>
+												<xsl:attribute name='src'>/learn/embed/<xsl:value-of select='identifier'/></xsl:attribute>
+											</img>
+										</xsl:when>
+										<xsl:when test='kind=101'>
+											<iframe
+												width="560" height="315"
+												title="YouTube video player"
+												frameborder="0"
+												allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+												allowfullscreen=''
+											>
+												<xsl:attribute name='src'>https://www.youtube.com/embed/<xsl:value-of select='value'/></xsl:attribute>
+											</iframe>
+										</xsl:when>
+									</xsl:choose>
 									<xsl:value-of select='title'/>
 								</div>
 							</xsl:for-each>

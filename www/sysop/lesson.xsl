@@ -170,6 +170,19 @@
 									</img>
 								</td>
 							</xsl:when>
+							<xsl:when test='kind=101'>
+								<td colspan='4'>
+									<iframe
+										width="560" height="315"
+										title="YouTube video player"
+										frameborder="0"
+										allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+										allowfullscreen=''
+									>
+										<xsl:attribute name='src'>https://www.youtube.com/embed/<xsl:value-of select='value'/></xsl:attribute>
+									</iframe>
+								</td>
+							</xsl:when>
 						</xsl:choose>
 					</p>
 				</xsl:for-each>
