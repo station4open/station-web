@@ -1,0 +1,42 @@
+version: '3.4'
+
+services:
+  postgres:
+    image: postgres:13-buster
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    env_file: .env
+    networks:
+      - station-web
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 8001:80
+    networks:
+      - station-web
+    environment:
+      PGADMIN_DEFAULT_EMAIL: slimemold@example.com
+      PGADMIN_DEFAULT_PASSWORD: slimemold
+    depends_on:
+      - postgres
+
+  web:
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+    env_file: .env
+    ports:
+      - 8000:8000
+    environment:
+      PORT: "${WEB_PORT}"
+      DATABASE_URL: "host=postgres user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB}"
+    volumes:
+      - .:/app
+    networks:
+      - station-web
+    depends_on:
+      - postgres
+
+networks:
+  station-web:

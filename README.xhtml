@@ -12,6 +12,7 @@
 	</section>
 	<section>
 		<h1>Installation</h1>
+		<h2>Right in local machine</h2>
 		<p>
 			Install database <a href="https://www.postgresql.org/">PostgreSQL</a>.
 		</p>
@@ -19,6 +20,9 @@
 			Install Haskell compiler <a href="https://www.haskell.org/ghc/">GHC</a> and package installer
 			<a href="https://www.haskell.org/cabal/index.html">cabal-install</a>.
 		</p>
+		<h2>With Docker</h2>
+		<p>Install docker and docker-compose</p>
+		<p>Jump right to execution. Haskell setup is automatically done in docker.</p>
 	</section>
 	<section>
 		<h1>Environment variables</h1>
@@ -67,9 +71,18 @@
 	</section>
 	<section>
 		<h1>Execution</h1>
+		<h2>Right in local machine</h2>
 		<blockquote>
 			<code>cabal v2-run</code>
 		</blockquote>
+		<h2>With docker</h2>
+		<p>Before this, please copy .env.repo to .env</p>
+		<blockquote>
+			<code>source dev-cmds.sh</code>
+		</blockquote>
+		<p>Available commands are documented in dev-cmds.sh itself.</p>
+		<p><i>Note: requires docker-compose. In some OSes, docker-compose may not come with docker-compose and need to be install separately.</i></p>
+		<p>Different from production setup, codes are bind-mounted in /opt. So a <code>sm_restart web</code> will update dependencies, compile and run modified codes</p>
 	</section>
 	<section>
 		<h1>Other Commands</h1>
