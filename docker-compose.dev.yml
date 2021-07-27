@@ -8,16 +8,19 @@ services:
     env_file: .env
     networks:
       - station-web
+
   pgadmin:
     image: dpage/pgadmin4
     ports:
       - 8001:80
     networks:
       - station-web
-        
     environment:
       PGADMIN_DEFAULT_EMAIL: slimemold@example.com
       PGADMIN_DEFAULT_PASSWORD: slimemold
+    depends_on:
+      - postgres
+
   web:
     build:
       context: .
@@ -32,6 +35,8 @@ services:
       - .:/app
     networks:
       - station-web
+    depends_on:
+      - postgres
 
 networks:
   station-web:
