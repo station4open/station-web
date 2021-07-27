@@ -11,6 +11,10 @@ function sm_run() {
   $docker_cmd up
 }
 
+function sm_down() {
+  $docker_cmd down
+}
+
 # Run postgres, pgadmin and station-web **detached**
 function sm_run_detached() {
   $docker_cmd up -d
