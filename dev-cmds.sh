@@ -1,5 +1,5 @@
 proj_name="station-web"
-docker_cmd="docker-compose -p ${proj_name}"
+docker_cmd="docker-compose -p ${proj_name} -f docker-compose.dev.yml"
 
 # Build station-web image
 function sm_build() {
