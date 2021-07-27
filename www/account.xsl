@@ -28,6 +28,7 @@
 					<input type='file' name='avatar'/>
 				</label>
 				<p><i><small>Avatar image should be square, and will be scaled down to 64px x 64px</small></i></p>
+				<input type="submit" />
 			</form>
 		</body>
 	</html>

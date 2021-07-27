@@ -2,7 +2,7 @@
 
 module Station.Database.User (
 	Type (Record, name, password, role, mark, lock, avatar),
-	check_password, get_avatar, delete, hash_password, add, set, set_password
+	check_password, get_avatar, set_avatar, delete, hash_password, add, set, set_password
 ) where
 
 import Prelude (fromEnum, toEnum)
@@ -78,6 +78,15 @@ get_avatar user_name db =
 	do
 		result <- DB.query db [sql| SELECT "AVATAR" FROM "USER" WHERE "NAME"=? |] (DB.Only user_name)
 		return (DB.fromBinary <$> DB.fromOnly <$> result)
+		
+set_avatar :: String -> BS.ByteString -> DB.Connection -> IO Bool
+set_avatar user_name avatar_content db =
+	do
+		result <- 
+			DB.execute 
+				db 
+				[sql| UPDATE "USER" SET "AVATAR"=? WHERE "NAME"=? |] (avatar_content, user_name)
+		return (result == 1)
 
 delete :: String -> DB.Connection -> IO Bool
 delete user db = fmap (1 ==) (DB.execute db [sql| DELETE FROM "USER" WHERE "NAME"=? |] (DB.Only user))

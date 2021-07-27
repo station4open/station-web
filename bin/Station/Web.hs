@@ -3,8 +3,8 @@ module Station.Web (handle) where
 import Prelude ()
 import Data.Eq ((==))
 import Data.Ord ((>))
-import Data.Maybe (Maybe (Just))
-import Data.Tuple (fst)
+import Data.Maybe (Maybe (Just), fromJust)
+import Data.Tuple (fst, snd)
 import Data.List (lookup)
 import Data.Functor ((<$>))
 import Control.Monad ((>>=))
@@ -68,6 +68,27 @@ handle_avatar environment user_name request respond
 			case (environment, user_name) of
 				(Environment.Record{Environment.user = Just user}, "") -> output (DB.User.name user)
 				(_, _) -> output (Data.Text.unpack user_name)
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case lookup "avatar" parameters of
+				Just avatar
+					| BS.length avatar > 0 ->
+						do
+							ok <- DB.User.set_avatar
+											(DB.User.name user)
+											(snd avatar)
+											(Environment.database environment)
+							if ok
+								then 
+									let
+										user = (fromJust (Environment.user session))
+										user_name = DB.User.name user
+										xml = XML.element "account" [("name", user_name)] [Web.Tool.user_XML user]
+										body = XML.xslt "account.xsl" xml
+										in HTTP.respond_XML body request respond
+								else HTTP.respond_400 "Failed to set avatar" request respond
+
 handle_avatar _ _ request respond =
 	HTTP.respond_405 request respond
 
