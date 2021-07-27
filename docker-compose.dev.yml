@@ -28,6 +28,8 @@ services:
     environment:
       PORT: "${WEB_PORT}"
       DATABASE_URL: "host=postgres user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB}"
+    volumes:
+      - .:/app
     networks:
       - station-web
 

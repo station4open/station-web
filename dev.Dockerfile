@@ -5,8 +5,12 @@ ENV PORT 8000
 ENV DATABASE_URL "host=peertube_postgres_1 user=sss password=sss dbname=sss"
 ENV LOG true
 
-WORKDIR /opt
+RUN useradd -ms /bin/bash slimemold
 
-VOLUME /opt
+USER slimemold
 
-CMD ["./startup-dev.sh"]
+WORKDIR /app
+
+VOLUME /app
+
+ENTRYPOINT ["sh", "./startup-dev.sh"]
