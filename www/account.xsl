@@ -20,15 +20,6 @@
 				</label>
 				<button type='submit'>Change</button>
 			</form>
-			<p>Current avatar</p>
-			<!-- <img src=> -->
-			<form method='POST' action='update-avatar'>
-				<label>
-					Change Avatar
-					<input type='file' name='avatar'/>
-				</label>
-				<p><i><small>Avatar image should be square, and will be scaled down to 64px x 64px</small></i></p>
-			</form>
 		</body>
 	</html>
 </xsl:template>
