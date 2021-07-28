@@ -21,7 +21,7 @@
 				<button type='submit'>Change</button>
 			</form>
 			<p>Current avatar</p>
-			<!-- <img src=> -->
+			<img src='/avatar' />
 			<form method='POST' action='avatar' enctype="multipart/form-data">
 				<label>
 					Change Avatar
