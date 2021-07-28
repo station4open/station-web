@@ -22,7 +22,7 @@
 			</form>
 			<p>Current avatar</p>
 			<!-- <img src=> -->
-			<form method='POST' action='update-avatar'>
+			<form method='POST' action='avatar' enctype="multipart/form-data">
 				<label>
 					Change Avatar
 					<input type='file' name='avatar'/>

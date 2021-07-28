@@ -17,6 +17,7 @@ import Control.Monad (return)
 import System.IO (IO)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS.C8
+import qualified Data.ByteString.Lazy as BS.L
 import qualified Crypto.Scrypt
 import qualified Database.PostgreSQL.Simple as DB
 import qualified Database.PostgreSQL.Simple.ToField as DB
@@ -85,7 +86,7 @@ set_avatar user_name avatar_content db =
 		result <- 
 			DB.execute 
 				db 
-				[sql| UPDATE "USER" SET "AVATAR"=? WHERE "NAME"=? |] (avatar_content, user_name)
+				[sql| UPDATE "USER" SET "AVATAR"=decode(?, 'base64') WHERE "NAME"=? |] (avatar_content, user_name)
 		return (result == 1)
 
 delete :: String -> DB.Connection -> IO Bool

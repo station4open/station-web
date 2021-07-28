@@ -1,9 +1,10 @@
 module Station.Web (handle) where
 
 import Prelude ()
-import Data.Eq ((==))
+import Data.Eq ((==), (/=))
+import Data.Bool (Bool(True))
 import Data.Ord ((>))
-import Data.Maybe (Maybe (Just), fromJust)
+import Data.Maybe (Maybe (Just, Nothing), fromJust)
 import Data.Tuple (fst, snd)
 import Data.List (lookup)
 import Data.Functor ((<$>))
@@ -11,6 +12,7 @@ import Control.Monad ((>>=))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as BS.U8
 import qualified Data.ByteString.Lazy as BS.L
+import qualified Data.ByteString.Base64 as BS.B64
 import qualified Data.Text
 import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
@@ -53,43 +55,42 @@ handle_account environment@Environment.Record{Environment.user = Just user} requ
 handle_account _ request respond =
 	HTTP.respond_405 request respond
 
-handle_avatar :: Environment.Type -> Data.Text.Text -> Wai.Application
-handle_avatar environment user_name request respond
+handle_avatar :: Environment.Type -> Wai.Application
+handle_avatar environment@Environment.Record{Environment.user = Just user} request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		let output name =
-			DB.User.get_avatar name (Environment.database environment) >>= \case
+		let name = DB.User.name user
+		in DB.User.get_avatar name (Environment.database environment) >>= \case
 				[avatar] ->
 					respond
 						(Wai.responseLBS Network.HTTP.Types.status200
 							[("Content-Type", "image/png")]
 							(BS.L.fromStrict avatar))
 				_ -> HTTP.respond_404 request respond
-			in
-			case (environment, user_name) of
-				(Environment.Record{Environment.user = Just user}, "") -> output (DB.User.name user)
-				(_, _) -> output (Data.Text.unpack user_name)
+			-- in
+			-- case (environment, user_name) of
+			-- 	(Environment.Record{Environment.user = Just user}, "") -> output (DB.User.name user)
+			-- 	(_, _) -> output (Data.Text.unpack user_name)
+-- handle_avatar environment@Environment.Record{Environment.user = Just user} user_name request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
 		do
-			parameters <- fst <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			parameters <- snd <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
 			case lookup "avatar" parameters of
 				Just avatar
-					| BS.length avatar > 0 ->
+					| BS.L.null (Wai.Parse.fileContent avatar) /= True ->
 						do
 							ok <- DB.User.set_avatar
 											(DB.User.name user)
-											(snd avatar)
+											(BS.B64.encode (BS.L.toStrict (Wai.Parse.fileContent avatar)))
 											(Environment.database environment)
 							if ok
 								then 
-									let
-										user = (fromJust (Environment.user session))
-										user_name = DB.User.name user
-										xml = XML.element "account" [("name", user_name)] [Web.Tool.user_XML user]
-										body = XML.xslt "account.xsl" xml
-										in HTTP.respond_XML body request respond
+									HTTP.respond_XML (
+										XML.xslt "account.xsl" (XML.element "account" [("name", (DB.User.name user))] [Web.Tool.user_XML user])
+									) request respond
 								else HTTP.respond_400 "Failed to set avatar" request respond
-
-handle_avatar _ _ request respond =
+				_ -> 
+					HTTP.respond_422 "You didn't send me an avatar" request respond
+handle_avatar _ request respond =
 	HTTP.respond_405 request respond
 
 handle :: Environment.Type -> Wai.Middleware
@@ -98,6 +99,6 @@ handle environment next request respond =
 		[] -> HTTP.respond_301 Constant.public_home request respond
 		"sysop" : path -> Web.SysOp.handle environment path next request respond
 		"account" : [] -> handle_account environment request respond
-		"avatar" : user_name : [] -> handle_avatar environment user_name request respond
+		"avatar" : [] -> handle_avatar environment request respond
 		"learn" : path -> Web.Learn.handle environment path next request respond
 		_ -> next request respond
