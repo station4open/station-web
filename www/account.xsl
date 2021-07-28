@@ -24,7 +24,7 @@
 			<img>
 				<xsl:attribute name='src'>/avatar/<xsl:value-of select='session/name'/></xsl:attribute>
 			</img>
-			<form method='POST' action='avatar' enctype="multipart/form-data">
+			<form method='POST' enctype="multipart/form-data">
 				<xsl:attribute name='action'>/avatar/<xsl:value-of select='session/name'/></xsl:attribute>
 				<label>
 					Change Avatar
