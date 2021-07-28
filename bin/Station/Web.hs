@@ -83,10 +83,7 @@ handle_avatar environment@Environment.Record{Environment.user = Just user} reque
 											(BS.B64.encode (BS.L.toStrict (Wai.Parse.fileContent avatar)))
 											(Environment.database environment)
 							if ok
-								then 
-									HTTP.respond_XML (
-										XML.xslt "account.xsl" (XML.element "account" [("name", (DB.User.name user))] [Web.Tool.user_XML user])
-									) request respond
+								then HTTP.respond_303 Constant.private_account request respond
 								else HTTP.respond_400 "Failed to set avatar" request respond
 				_ -> 
 					HTTP.respond_422 "You didn't send me an avatar" request respond

@@ -1,6 +1,6 @@
 module Station.Constant (
 	Role,
-	auth_realm, public_home, private_home, login_fail,
+	auth_realm, public_home, private_home, private_account, login_fail,
 	session, session_age
 ) where
 
@@ -19,6 +19,9 @@ public_home = fromString "/home.xhtml"
 
 private_home :: IsString s => s
 private_home = fromString "/learn"
+
+private_account :: IsString s => s
+private_account = fromString "/account"
 
 login_fail :: IsString s => s
 login_fail = fromString "/login-fail.xhtml"
