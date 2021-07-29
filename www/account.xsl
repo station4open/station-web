@@ -20,6 +20,19 @@
 				</label>
 				<button type='submit'>Change</button>
 			</form>
+			<p>Current avatar</p>
+			<img>
+				<xsl:attribute name='src'>/avatar/<xsl:value-of select='session/name'/></xsl:attribute>
+			</img>
+			<form method='POST' enctype="multipart/form-data">
+				<xsl:attribute name='action'>/avatar/<xsl:value-of select='session/name'/></xsl:attribute>
+				<label>
+					Change Avatar
+					<input type='file' name='avatar'/>
+				</label>
+				<p><i><small>Avatar image should be square, and will be scaled down to 64px x 64px</small></i></p>
+				<input type="submit" />
+			</form>
 		</body>
 	</html>
 </xsl:template>

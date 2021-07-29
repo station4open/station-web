@@ -43,6 +43,7 @@ executable station
   build-depends:
     base >= 4.10.0 && < 5,
     bytestring,
+    base64-bytestring,
     binary,
     utf8-string,
     filepath,

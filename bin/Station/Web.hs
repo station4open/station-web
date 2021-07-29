@@ -1,16 +1,18 @@
 module Station.Web (handle) where
 
 import Prelude ()
-import Data.Eq ((==))
+import Data.Eq ((==), (/=))
+import Data.Bool (Bool(True))
 import Data.Ord ((>))
-import Data.Maybe (Maybe (Just))
-import Data.Tuple (fst)
+import Data.Maybe (Maybe (Just, Nothing), fromJust)
+import Data.Tuple (fst, snd)
 import Data.List (lookup)
 import Data.Functor ((<$>))
 import Control.Monad ((>>=))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as BS.U8
 import qualified Data.ByteString.Lazy as BS.L
+import qualified Data.ByteString.Base64 as BS.B64
 import qualified Data.Text
 import qualified Network.HTTP.Types
 import qualified Network.Wai as Wai
@@ -54,9 +56,9 @@ handle_account _ request respond =
 	HTTP.respond_405 request respond
 
 handle_avatar :: Environment.Type -> Data.Text.Text -> Wai.Application
-handle_avatar environment user_name request respond
+handle_avatar environment@Environment.Record{Environment.user = Just user} user_name request respond
 	| Wai.requestMethod request == Network.HTTP.Types.methodGet =
-		let output name =
+		let output name = 
 			DB.User.get_avatar name (Environment.database environment) >>= \case
 				[avatar] ->
 					respond
@@ -68,6 +70,22 @@ handle_avatar environment user_name request respond
 			case (environment, user_name) of
 				(Environment.Record{Environment.user = Just user}, "") -> output (DB.User.name user)
 				(_, _) -> output (Data.Text.unpack user_name)
+	| Wai.requestMethod request == Network.HTTP.Types.methodPost =
+		do
+			parameters <- snd <$> Wai.Parse.parseRequestBody Wai.Parse.lbsBackEnd request
+			case lookup "avatar" parameters of
+				Just avatar
+					| BS.L.null (Wai.Parse.fileContent avatar) /= True ->
+						do
+							ok <- DB.User.set_avatar
+											(DB.User.name user)
+											(BS.B64.encode (BS.L.toStrict (Wai.Parse.fileContent avatar)))
+											(Environment.database environment)
+							if ok
+								then HTTP.respond_303 Constant.private_account request respond
+								else HTTP.respond_400 "Failed to set avatar" request respond
+				_ -> 
+					HTTP.respond_422 "You didn't send me an avatar" request respond
 handle_avatar _ _ request respond =
 	HTTP.respond_405 request respond
 
